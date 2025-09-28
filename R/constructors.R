@@ -12,6 +12,19 @@ data_stack_constr <- function(data_stack) {
   invisible(TRUE)
 }
 
+causal_workflow_constr <- function(causal_workflow) {
+  # check that the components are either NULL or a workflow
+  if (!is.null(causal_workflow$propensity_model)) {
+    check_inherits(causal_workflow$propensity_model, "workflow")
+  }
+
+  if (!is.null(causal_workflow$outcome_model)) {
+    check_inherits(causal_workflow$outcome_model, "workflow")
+  }
+
+  invisible(TRUE)
+}
+
 model_stack_constr <- function(model_stack) {
   check_inherits(model_stack[["coefs"]], "model_fit")
   check_inherits(model_stack[["equations"]], "list")
