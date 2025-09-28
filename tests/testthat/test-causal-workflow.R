@@ -3,10 +3,11 @@
 # Create some sample data
 set.seed(1234)
 n <- 100
+treatment_coef <- 0.5
 sim_data <- tibble::tibble(
   covar1 = rnorm(n),
   covar2 = rnorm(n),
-  treatment = rbinom(n, 1, plogis(0.5 * covar1)),
+  treatment = rbinom(n, 1, plogis(treatment_coef * covar1)),
   outcome = 10 + 2 * treatment + 5 * covar1 + 3 * covar2 + rnorm(n)
 ) |>
   dplyr::mutate(treatment = factor(treatment, levels = c(0, 1), labels = c("control", "treated")))

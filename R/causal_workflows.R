@@ -10,6 +10,16 @@
 #' like `add_propensity_model()` and `add_outcome_model()` to specify the
 #' analysis.
 #'
+#' @details
+#' This initial version of `causal_workflow` is designed for single-stage,
+#' point-treatment estimators with binary treatments (e.g., AIPW). The
+#' underlying architecture is designed to be extensible to more complex
+#' scenarios in future versions, including:
+#' - Multi-level categorical or continuous treatments.
+#' - More generic weighting schemes, such as inverse probability of censoring
+#'   weights.
+#' - Multi-stage dynamic treatment regimes.
+#'
 #' @param ... Additional arguments. Currently ignored.
 #'
 #' @return A `causal_workflow` object.

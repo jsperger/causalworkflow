@@ -38,10 +38,8 @@ tune_grid.causal_workflow <- function(object, resamples, grid, ...) {
 
   # 3. Dispatch to the correct component
   if (is_pscore_tuning && !is_outcome_tuning) {
-    rlang::inform("Tuning the propensity model.")
     tune::tune_grid(pscore_wflow, resamples = resamples, grid = grid, ...)
   } else if (is_outcome_tuning && !is_pscore_tuning) {
-    rlang::inform("Tuning the outcome model.")
     tune::tune_grid(outcome_wflow, resamples = resamples, grid = grid, ...)
   } else if (is_pscore_tuning && is_outcome_tuning) {
     # This can happen if both have the same tunable param name, e.g. `mtry`

@@ -1,3 +1,13 @@
+# NOTE on extensibility: The current `fit.causal_workflow` implementation is
+# specialized for a binary treatment and the AIPW estimator. Future extensions
+# should aim to generalize this logic. For example, handling a multi-level
+# categorical treatment would involve iterating over treatment levels to compute
+# pairwise ATEs or other contrasts. This would likely require modifications to
+# the counterfactual prediction loop and the final EIF calculation. Similarly,
+# supporting other estimators would require replacing the EIF calculation with
+# the appropriate influence function. The overall cross-fitting structure,
+# however, should remain a valid foundation for these extensions.
+
 #' @importFrom generics fit
 #' @export
 generics::fit
@@ -67,7 +77,7 @@ fit.causal_workflow <- function(object, data, ...) {
 
   # 6. Calculate EIF
   Y <- data_with_preds[[outcome_var]]
-  A <- as.numeric(data_with_preds[[treatment_var]]) - 1 # Assumes 0/1 coding
+  A <- as.numeric(data_with_preds[[treatment_var]] == treatment_levels[2])
   g_hat <- data_with_preds$g_hat
   q1_hat <- data_with_preds$q1_hat
   q0_hat <- data_with_preds$q0_hat
@@ -80,6 +90,15 @@ fit.causal_workflow <- function(object, data, ...) {
   eif_values <- term1 + term2 - term3
 
   # 7. Calculate final estimate and variance
+  if (any(is.na(eif_values))) {
+    rlang::warn(
+      paste(
+        "NA values were found in the efficient influence function.",
+        "These are often caused by near-zero propensity scores and have been",
+        "removed from the final estimate."
+      )
+    )
+  }
   ate_estimate <- mean(eif_values, na.rm = TRUE)
   ate_variance <- stats::var(eif_values, na.rm = TRUE) / sum(!is.na(eif_values))
 
