@@ -223,6 +223,44 @@ check_fitted <- function(model_stack, call = caller_env()) {
   }
 }
 
+#' Predict from a fitted causal workflow
+#'
+#' @param object A `fitted_causal_workflow` object.
+#' @param new_data A new data frame for which to generate predictions.
+#'   Note: This is not yet used in Phase 1 but is included for API
+#'   consistency and future development.
+#' @param type A character string specifying the type of prediction to return.
+#'   Valid options are:
+#'   - `"estimate"`: (Default) The final point estimate (e.g., ATE) and
+#'     its standard error.
+#'   - `"if"`: The observation-level efficient influence function (EIF) values.
+#'   - `"components"`: The out-of-sample nuisance predictions from the
+#'     cross-fitting procedure.
+#' @param ... Not used.
+#'
+#' @return A tibble with the requested prediction type.
+#'
+#' @export
+predict.fitted_causal_workflow <- function(object, new_data = NULL, type = "estimate", ...) {
+  type <- rlang::arg_match(type, c("estimate", "if", "components"))
+
+  switch(
+    type,
+    "estimate" = {
+      tibble::tibble(
+        .pred = object$estimate,
+        .std_err = sqrt(object$variance)
+      )
+    },
+    "if" = {
+      tibble::tibble(.pred_if = object$eif)
+    },
+    "components" = {
+      object$nuisance_predictions
+    }
+  )
+}
+
 #' @importFrom generics augment
 #' @export
 generics::augment
