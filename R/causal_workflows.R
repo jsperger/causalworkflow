@@ -44,15 +44,16 @@ causal_workflow <- function(...) {
 #' Add a propensity model to a causal workflow
 #'
 #' @param x A `causal_workflow` object.
-#' @param wflow A `tidymodels` `workflow` object for the propensity model.
+#' @param spec A `tidymodels` `workflow` or `workflow_set` object for the
+#'   propensity model.
 #'
 #' @return An updated `causal_workflow` object.
 #' @export
-add_propensity_model <- function(x, wflow) {
+add_propensity_model <- function(x, spec) {
   check_causal_workflow(x)
-  check_workflow(wflow)
+  check_spec(spec)
 
-  x$propensity_model <- wflow
+  x$propensity_model <- spec
 
   if (causal_workflow_constr(x)) {
     x
@@ -62,15 +63,16 @@ add_propensity_model <- function(x, wflow) {
 #' Add an outcome model to a causal workflow
 #'
 #' @param x A `causal_workflow` object.
-#' @param wflow A `tidymodels` `workflow` object for the outcome model.
+#' @param spec A `tidymodels` `workflow` or `workflow_set` object for the
+#'   outcome model.
 #'
 #' @return An updated `causal_workflow` object.
 #' @export
-add_outcome_model <- function(x, wflow) {
+add_outcome_model <- function(x, spec) {
   check_causal_workflow(x)
-  check_workflow(wflow)
+  check_spec(spec)
 
-  x$outcome_model <- wflow
+  x$outcome_model <- spec
 
   if (causal_workflow_constr(x)) {
     x
@@ -86,10 +88,13 @@ check_causal_workflow <- function(x, call = rlang::caller_env()) {
   }
 }
 
-check_workflow <- function(wflow, call = rlang::caller_env()) {
-  if (!inherits(wflow, "workflow")) {
+check_spec <- function(spec, call = rlang::caller_env()) {
+  is_wflow <- inherits(spec, "workflow")
+  is_wflow_set <- inherits(spec, "workflow_set")
+
+  if (!is_wflow && !is_wflow_set) {
     rlang::abort(
-      "`wflow` must be a `workflow` object.",
+      "`spec` must be a `workflow` or `workflow_set` object.",
       call = call
     )
   }

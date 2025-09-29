@@ -12,7 +12,7 @@
 #'   - `"blip_avg"`: The treatment effect relative to the average of all
 #'     treatment levels.
 #'   - `"if"`: The observation-level efficient influence function (EIF) values
-#'     for each treatment level.
+#'     for the potential outcome mean (POM) for each treatment level.
 #'   - `"components"`: The out-of-sample nuisance predictions from the
 #'     cross-fitting procedure.
 #' @param ... Additional arguments passed to the prediction method.
@@ -30,6 +30,9 @@ predict.fitted_causal_workflow <- function(object, new_data = NULL, type = "pote
   valid_types <- c("potential_outcome", "if", "components", "blip_ref", "blip_avg")
   type <- rlang::arg_match(type, valid_types)
 
+  # Use eif_pom as the influence function object
+  if_object <- object$eif_pom
+
   switch(
     type,
     "potential_outcome" = {
@@ -38,7 +41,7 @@ predict.fitted_causal_workflow <- function(object, new_data = NULL, type = "pote
       dplyr::select(res, "level", ".pred", ".std_err")
     },
     "if" = {
-      object$eif
+      if_object
     },
     "components" = {
       object$nuisance_predictions
@@ -60,13 +63,13 @@ predict.fitted_causal_workflow <- function(object, new_data = NULL, type = "pote
         )
       }
 
-      eif_ref_col <- paste0("eif_", ref_level)
-      eif_ref <- object$eif[[eif_ref_col]]
+      eif_ref_col <- paste0("eif_pom_", ref_level)
+      eif_ref <- if_object[[eif_ref_col]]
       contrast_levels <- setdiff(object$treatment_levels, ref_level)
 
       purrr::map_dfr(contrast_levels, function(lvl) {
-        eif_lvl_col <- paste0("eif_", lvl)
-        eif_lvl <- object$eif[[eif_lvl_col]]
+        eif_lvl_col <- paste0("eif_pom_", lvl)
+        eif_lvl <- if_object[[eif_lvl_col]]
         blip_eif <- eif_lvl - eif_ref
 
         pred <- mean(blip_eif, na.rm = TRUE)
@@ -80,11 +83,11 @@ predict.fitted_causal_workflow <- function(object, new_data = NULL, type = "pote
       })
     },
     "blip_avg" = {
-      avg_eif <- rowMeans(object$eif, na.rm = TRUE)
+      avg_eif <- rowMeans(if_object, na.rm = TRUE)
 
       purrr::map_dfr(object$treatment_levels, function(lvl) {
-        eif_lvl_col <- paste0("eif_", lvl)
-        eif_lvl <- object$eif[[eif_lvl_col]]
+        eif_lvl_col <- paste0("eif_pom_", lvl)
+        eif_lvl <- if_object[[eif_lvl_col]]
         blip_eif <- eif_lvl - avg_eif
 
         pred <- mean(blip_eif, na.rm = TRUE)

@@ -74,7 +74,7 @@ test_that("fit.causal_workflow and predict.fitted_causal_workflow work", {
 
   pred_if <- predict(fitted_wflow, type = "if")
   expect_true(tibble::is_tibble(pred_if))
-  expect_equal(names(pred_if), c("eif_control", "eif_treated"))
+  expect_equal(names(pred_if), c("eif_pom_control", "eif_pom_treated"))
   expect_equal(nrow(pred_if), nrow(sim_data))
 
   pred_comp <- predict(fitted_wflow, type = "components")
