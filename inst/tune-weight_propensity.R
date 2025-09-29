@@ -37,7 +37,7 @@
 #' }
 #'
 #' propensity_wf <- workflow(Class ~ B, logistic_reg())
-#' outcome_wf <- workflow(A ~ Class, linear_reg()) %>% add_case_weights(.wts)
+#' outcome_wf <- workflow(A ~ Class, linear_reg()) |> add_case_weights(.wts)
 #'
 #' # single model --------------------------------------------------------------
 #' propensity_fit <- fit(propensity_wf, two_class_dat)
@@ -49,7 +49,7 @@
 #'
 #' outcome_fit <- fit(outcome_wf, two_class_weighted)
 #'
-#' outcome_fit %>% extract_fit_engine() %>% coef()
+#' outcome_fit |> extract_fit_engine() |> coef()
 #'
 #' # resampled model -----------------------------------------------------------
 #' set.seed(1)
@@ -62,10 +62,10 @@
 #'     resamples = boots,
 #'     # note `extract = identity` rather than `extract`
 #'     control = control_resamples(extract = identity)
-#'   ) %>%
+#'   ) |>
 #'   # determine weights for outcome model based on
 #'   # propensity model's predictions
-#'   weight_propensity(silly_wt_fn) %>%
+#'   weight_propensity(silly_wt_fn) |>
 #'   # fit outcome workflow using generated `.wts`
 #'   fit_resamples(
 #'     outcome_wf,
@@ -78,11 +78,11 @@
 #' collect_extracts(res_tm)
 #'
 #' # plot the properly resampled distribution of estimates:
-#' collect_extracts(res_tm) %>%
-#'   pull(.extracts) %>%
-#'   map(extract_fit_engine) %>%
-#'   map(coef) %>%
-#'   bind_rows() %>%
+#' collect_extracts(res_tm) |>
+#'   pull(.extracts) |>
+#'   map(extract_fit_engine) |>
+#'   map(coef) |>
+#'   bind_rows() |>
 #'   ggplot() +
 #'   aes(x = ClassClass2) +
 #'   geom_histogram()

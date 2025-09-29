@@ -172,14 +172,14 @@ tune_inner <- function(
     )
   res <- rlang::eval_tidy(.cl)
   prime_metric <- tune:::metrics_info(metrics)$.metric[1]
-  res_metrics <- collect_metrics(res) %>% dplyr::mutate(level = "inner")
-  inner_param <- select_best(res, metric = prime_metric) %>%
+  res_metrics <- collect_metrics(res) |> dplyr::mutate(level = "inner")
+  inner_param <- select_best(res, metric = prime_metric) |>
     dplyr::mutate(best = TRUE)
   # dplyr::full_join(
   #   res_metrics,
   #   inner_param,
   #   by = c(".config", .get_tune_parameter_names(res))
-  # ) %>%
+  # ) |>
   #   dplyr::mutate(best = ifelse(is.na(best), FALSE, best))
 
   res_metrics$best <- res_metrics$.config == inner_param$.config
@@ -189,11 +189,11 @@ tune_inner <- function(
 # TODO what about seeds?
 fit_outer_resamples <- function(config, split, workflow, metrics) {
   prm_names <-
-    extract_parameter_set_dials(workflow) %>%
+    extract_parameter_set_dials(workflow) |>
     pluck("id")
   config <-
-    dplyr::filter(config, best) %>%
-    dplyr::select(dplyr::all_of(prm_names)) %>%
+    dplyr::filter(config, best) |>
+    dplyr::select(dplyr::all_of(prm_names)) |>
     dplyr::distinct()
 
   workflow <- finalize_workflow(workflow, config)

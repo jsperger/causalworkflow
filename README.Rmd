@@ -44,17 +44,17 @@ library(workflows)
 
 # 1. Define nuisance model workflows
 # Propensity score model: T ~ X1 + X2
-ps_mod <- logistic_reg() %>% set_engine("glm")
+ps_mod <- logistic_reg() |> set_engine("glm")
 ps_wflow <-
-  workflow() %>%
-  add_model(ps_mod) %>%
+  workflow() |>
+  add_model(ps_mod) |>
   add_formula(treatment ~ V1 + V2 + V3 + V4)
 
 # Outcome model: Y ~ A + X1 + X2
-outcome_mod <- linear_reg() %>% set_engine("lm")
+outcome_mod <- linear_reg() |> set_engine("lm")
 outcome_wflow <-
-  workflow() %>%
-  add_model(outcome_mod) %>%
+  workflow() |>
+  add_model(outcome_mod) |>
   add_formula(outcome ~ treatment + V1 + V2 + V3 + V4)
 
 # 2. Create a causal_workflow

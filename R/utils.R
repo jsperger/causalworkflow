@@ -1,8 +1,5 @@
 # Re-exports
 # ------------------------------------------------------------------------
-#' @importFrom dplyr %>%
-#' @export
-dplyr::`%>%`
 
 # Imports
 #' @importFrom cli cli_inform

@@ -11,7 +11,7 @@ test_that("basic functionality", {
   }
 
   propensity_wf <- workflow(Class ~ B, logistic_reg())
-  outcome_wf <- workflow(A ~ Class, linear_reg()) %>% add_case_weights(.wts)
+  outcome_wf <- workflow(A ~ Class, linear_reg()) |> add_case_weights(.wts)
 
   set.seed(1)
   boots <- bootstraps(two_class_dat)
@@ -25,7 +25,7 @@ test_that("basic functionality", {
     )
 
   res_weight_propensity <-
-    res_fit_resamples %>%
+    res_fit_resamples |>
     weight_propensity(silly_wt_fn)
 
   # `weight_propensity()` preserves rset properties:
@@ -41,7 +41,7 @@ test_that("basic functionality", {
   )
   expect_equal(
     purrr::map(boots$splits, purrr::pluck, "data"),
-    purrr::map(res_weight_propensity$splits, purrr::pluck, "data") %>%
+    purrr::map(res_weight_propensity$splits, purrr::pluck, "data") |>
       purrr::map(dplyr::select, -.wts)
   )
 
@@ -54,17 +54,17 @@ test_that("basic functionality", {
     1
   )
   expect_equal(
-    purrr::map(boots$splits, analysis) %>%
-      purrr::map2(wf_fits, ., predict, type = "prob") %>%
+    purrr::map(boots$splits, analysis) |>
+      purrr::map2(wf_fits, ., predict, type = "prob") |>
       purrr::map(dplyr::pull, 2),
-    purrr::map(res_weight_propensity$splits, analysis) %>%
-      purrr::map(dplyr::pull, .wts) %>%
+    purrr::map(res_weight_propensity$splits, analysis) |>
+      purrr::map(dplyr::pull, .wts) |>
       purrr::map(as.numeric)
   )
 
   # output is valid input to another call to `fit_resamples()`
   res_final <-
-    res_weight_propensity %>%
+    res_weight_propensity |>
     fit_resamples(outcome_wf, resamples = .)
 
   expect_s3_class(res_final, "tune_results")
@@ -82,7 +82,7 @@ test_that("errors informatively with bad input", {
   }
 
   propensity_wf <- workflow(Class ~ B, logistic_reg())
-  outcome_wf <- workflow(A ~ Class, linear_reg()) %>% add_case_weights(.wts)
+  outcome_wf <- workflow(A ~ Class, linear_reg()) |> add_case_weights(.wts)
 
   set.seed(1)
   boots <- bootstraps(two_class_dat)
@@ -99,7 +99,7 @@ test_that("errors informatively with bad input", {
     fit_resamples(propensity_wf, resamples = boots)
 
   res_weight_propensity <-
-    res_fit_resamples %>%
+    res_fit_resamples |>
     weight_propensity(silly_wt_fn)
 
   # did not set `control`
@@ -147,7 +147,7 @@ test_that("results match manual calculation", {
   }
 
   propensity_wf <- workflow(Class ~ B, logistic_reg())
-  outcome_wf <- workflow(A ~ Class, linear_reg()) %>% add_case_weights(.wts)
+  outcome_wf <- workflow(A ~ Class, linear_reg()) |> add_case_weights(.wts)
 
   set.seed(1)
   boots <- bootstraps(two_class_dat)
@@ -158,8 +158,8 @@ test_that("results match manual calculation", {
       propensity_wf,
       resamples = boots,
       control = control_resamples(extract = identity)
-    ) %>%
-    weight_propensity(silly_wt_fn) %>%
+    ) |>
+    weight_propensity(silly_wt_fn) |>
     fit_resamples(
       outcome_wf,
       resamples = .,
@@ -184,12 +184,12 @@ test_that("results match manual calculation", {
 
   # comparison:
   expect_equal(
-    res_tm %>%
-      collect_extracts() %>%
-      pull(.extracts) %>%
-      purrr::map(extract_fit_engine) %>%
+    res_tm |>
+      collect_extracts() |>
+      pull(.extracts) |>
+      purrr::map(extract_fit_engine) |>
       purrr::map(coef),
-    purrr::map(res_rc, extract_fit_engine) %>%
+    purrr::map(res_rc, extract_fit_engine) |>
       purrr::map(coef)
   )
 })

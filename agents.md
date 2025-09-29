@@ -83,8 +83,8 @@ Adhere to four main principles: **Pure Functions**, **Immutability**, **Function
 
 ## R Guidance
 ### Follow the tidyverse style guide especially:
-- **Namespaces**: Qualify all non-base R function calls (e.g., `checkmate::assert_string(x)`). Do not qualify function calls for base R functions
-- **Operators**: Use the base R pipe `|>` instead of `|>`.
+- **Namespaces**: Qualify all non-base R function calls (e.g., `stacks::fit_members(x)`). Do not qualify function calls for base R functions
+- **Operators**: Use the base R pipe `|>`
 - **Forbidden**: Do not use `attach()` or right-hand assignment (`->`).
 
 ## Roxygen documentation
