@@ -33,32 +33,40 @@ predict.fitted_staged_workflow <-
     checkmate::assert_class(object, "fitted_staged_workflow")
     checkmate::assert_data_frame(new_data)
     checkmate::assert_int(stage, lower = 1)
-    checkmate::assert_choice(type, c("action", "value"))
 
     stage_model <- object$models[[as.character(stage)]]
     if (is.null(stage_model)) {
       stop("No model found for stage ", stage)
     }
 
-    actions <- object$actions
+    # Dispatch to the appropriate prediction method based on model type
+    if (inherits(stage_model, "fitted_causal_workflow")) {
+      # Phase 3: Predict from a multi-component model
+      # The `type` argument is passed via `...` to the underlying method
+      return(stats::predict(stage_model, new_data = new_data, type = type, ...))
+    } else {
+      # Phase 2: Predict from a single model (Q-learning)
+      checkmate::assert_choice(type, c("action", "value"))
+      actions <- object$actions
 
-    preds_over_actions <- lapply(actions, function(act) {
-      data_for_action <- new_data
-      data_for_action$action <- factor(act, levels = actions)
-      stats::predict(stage_model, new_data = data_for_action)$.pred
-    })
+      preds_over_actions <- lapply(actions, function(act) {
+        data_for_action <- new_data
+        data_for_action$action <- factor(act, levels = actions)
+        stats::predict(stage_model, new_data = data_for_action)$.pred
+      })
 
-    pred_matrix <- do.call(cbind, preds_over_actions)
+      pred_matrix <- do.call(cbind, preds_over_actions)
 
-    if (type == "value") {
-      max_values <- do.call(pmax, as.data.frame(pred_matrix))
-      return(tibble::tibble(.pred_value = max_values))
-    }
+      if (type == "value") {
+        max_values <- do.call(pmax, as.data.frame(pred_matrix))
+        return(tibble::tibble(.pred_value = max_values))
+      }
 
-    if (type == "action") {
-      max_indices <- apply(pred_matrix, 1, which.max)
-      best_actions <- actions[max_indices]
-      return(tibble::tibble(.pred_action = factor(best_actions, levels = actions)))
+      if (type == "action") {
+        max_indices <- apply(pred_matrix, 1, which.max)
+        best_actions <- actions[max_indices]
+        return(tibble::tibble(.pred_action = factor(best_actions, levels = actions)))
+      }
     }
   }
 
@@ -82,10 +90,21 @@ predict.fitted_staged_workflow <-
 #' A tibble with one row per observation in `new_data` and columns for the
 #' predicted action and value at each stage (e.g., `.pred_action_1`,
 #' `.pred_value_1`, etc.).
+#' @importFrom parsnip multi_predict
 #' @export
 multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
   checkmate::assert_class(object, "fitted_staged_workflow")
   checkmate::assert_data_frame(new_data)
+
+  # Check if any stage has a multi-component model, which is not supported
+  # for sequential action prediction.
+  has_causal_model <- purrr::some(object$models, ~ inherits(.x, "fitted_causal_workflow"))
+  if (has_causal_model) {
+    stop(
+      "`multi_predict()` is only supported for staged workflows where every ",
+      "stage is a standard `workflow` (single-model Q-learning)."
+    )
+  }
 
   stage_nums <- as.numeric(names(object$models))
 
@@ -118,10 +137,4 @@ multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
   }
 
   tibble::as_tibble(results)
-}
-
-# A simple generic for multi_predict
-#' @export
-multi_predict <- function(object, ...) {
-  UseMethod("multi_predict")
 }

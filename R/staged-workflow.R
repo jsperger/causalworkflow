@@ -48,13 +48,19 @@ staged_workflow <- function() {
 #' `staged_workflow` object.
 #'
 #' @param x A `staged_workflow` object.
-#' @param wflow A `tidymodels` `workflow` object to be assigned to the stage(s).
+#' @param wflow A `tidymodels` `workflow` or a `causal_workflow` object to be
+#'   assigned to the stage(s).
 #' @param stage An integer specifying a single stage.
 #' @param stages An integer vector specifying multiple stages.
 #'
 #' @details
 #' Use either the `stage` or `stages` argument to specify the assignment. If a
 #' workflow is already present for a given stage, it will be overwritten.
+#'
+#' When a `causal_workflow` is provided, the fitting process for that stage
+#' will use the multi-component estimation procedure defined by Phase 1.
+#' When a standard `workflow` is provided, the fitting process will use the
+#' single-model Q-learning procedure from Phase 2.
 #'
 #' @return
 #' An updated `staged_workflow` object.
@@ -88,7 +94,7 @@ staged_workflow <- function() {
 #' }
 add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
   checkmate::assert_class(x, "staged_workflow")
-  checkmate::assert_class(wflow, "workflow")
+  checkmate::assert_multi_class(wflow, c("workflow", "causal_workflow"))
 
   if (is.null(stage) && is.null(stages)) {
     stop("Either `stage` or `stages` must be specified.")
@@ -101,8 +107,19 @@ add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
 
   checkmate::assert_integerish(stages, lower = 1)
 
+  wflow_type <- if (inherits(wflow, "causal_workflow")) {
+    "multi_component"
+  } else {
+    "single_model"
+  }
+
+  stage_spec <- list(
+    wflow = wflow,
+    type = wflow_type
+  )
+
   for (s in stages) {
-    x$stages[[as.character(s)]] <- wflow
+    x$stages[[as.character(s)]] <- stage_spec
   }
 
   x

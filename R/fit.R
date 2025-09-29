@@ -56,7 +56,9 @@ fit.causal_workflow <- function(object, data, ...) {
 
   # 3. Set up cross-fitting
   data_with_row <- data |> dplyr::mutate(.row = dplyr::row_number())
-  folds <- rsample::vfold_cv(data_with_row)
+  # Use a fixed number of folds to avoid LOO-CV issues with small N.
+  n_folds <- min(5, nrow(data_with_row))
+  folds <- rsample::vfold_cv(data_with_row, v = n_folds)
 
   # 4. Perform cross-fitting to get nuisance predictions
   nuisance_preds <-

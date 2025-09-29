@@ -36,14 +36,16 @@ test_that("`add_stage_model` works correctly", {
     add_stage_model(lm_wflow, stage = 1)
 
   expect_equal(length(spec$stages), 1)
-  expect_s3_class(spec$stages$`1`, "workflow")
+  expect_s3_class(spec$stages$`1`$wflow, "workflow")
+  expect_equal(spec$stages$`1`$type, "single_model")
 
   spec <- spec |>
     add_stage_model(lm_wflow, stages = 2:3)
 
   expect_equal(length(spec$stages), 3)
-  expect_s3_class(spec$stages$`2`, "workflow")
-  expect_s3_class(spec$stages$`3`, "workflow")
+  expect_s3_class(spec$stages$`2`$wflow, "workflow")
+  expect_equal(spec$stages$`2`$type, "single_model")
+  expect_s3_class(spec$stages$`3`$wflow, "workflow")
 })
 
 test_that("`set_action_exclusions` works correctly", {
@@ -150,4 +152,76 @@ test_that("`multi_predict.fitted_staged_workflow` works correctly", {
     c(".pred_value_1", ".pred_action_1", ".pred_value_2", ".pred_action_2")
   )
   expect_equal(nrow(seq_preds), 10)
+})
+
+
+# --- Test Phase 3: Compositional Workflows ------------------------------------
+
+test_that("`staged_workflow` can fit a compositional `causal_workflow`", {
+  # A multi-component (AIPW) spec for stage 1
+  stage_1_aipw <- causal_workflow() |>
+    add_outcome_model(
+      workflow() |>
+        add_model(linear_reg()) |>
+        add_formula(outcome ~ covar1 + covar2 + action)
+    ) |>
+    add_propensity_model(
+      workflow() |>
+        add_model(logistic_reg()) |>
+        add_formula(action ~ covar1 + covar2)
+    )
+
+  # A standard Q-learning spec for stage 2
+  stage_2_q <- workflow() |>
+    add_model(linear_reg()) |>
+    add_formula(outcome ~ covar1 + covar2 + action)
+
+  # Create and fit the compositional workflow
+  longitudinal_spec <- staged_workflow() |>
+    add_stage_model(stage_1_aipw, stage = 1) |>
+    add_stage_model(stage_2_q, stage = 2)
+
+  expect_no_error(
+    fitted_longitudinal <- fit(longitudinal_spec, data = sim_data)
+  )
+
+  # Check the structure of the fitted object
+  expect_s3_class(fitted_longitudinal, "fitted_staged_workflow")
+  expect_equal(length(fitted_longitudinal$models), 2)
+  expect_s3_class(fitted_longitudinal$models$`1`, "fitted_causal_workflow")
+  expect_s3_class(fitted_longitudinal$models$`2`, "workflow")
+  expect_true(fitted_longitudinal$models$`2`$trained)
+  expect_type(fitted_longitudinal$models$`1`$estimate, "double")
+
+  # Test predict dispatch
+  new_data_s1 <- sim_data[sim_data$stage == 1, ]
+  new_data_s2 <- sim_data[sim_data$stage == 2, ]
+
+  # Predict from stage 1 (causal_workflow) should return a point estimate
+  pred_point_s1 <- predict(
+    fitted_longitudinal,
+    new_data = new_data_s1,
+    stage = 1,
+    type = "estimate"
+  )
+  expect_s3_class(pred_point_s1, "tbl_df")
+  expect_true(".pred" %in% names(pred_point_s1))
+  expect_equal(nrow(pred_point_s1), 1)
+  expect_equal(pred_point_s1$.pred[1], fitted_longitudinal$models$`1`$estimate)
+
+  # Predict from stage 2 (standard workflow) should work
+  pred_action_s2 <- predict(
+    fitted_longitudinal,
+    new_data = new_data_s2,
+    stage = 2,
+    type = "action"
+  )
+  expect_s3_class(pred_action_s2, "tbl_df")
+  expect_equal(names(pred_action_s2), ".pred_action")
+
+  # Test multi_predict error
+  expect_error(
+    multi_predict(fitted_longitudinal, new_data = new_data_s1),
+    "is only supported for staged workflows where every stage is a standard"
+  )
 })
