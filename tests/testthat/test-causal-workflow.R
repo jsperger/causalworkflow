@@ -61,24 +61,25 @@ test_that("fit.causal_workflow and predict.fitted_causal_workflow work", {
   # Test fitting
   fitted_wflow <- fit(aipw_spec, data = sim_data)
   expect_s3_class(fitted_wflow, "fitted_causal_workflow")
-  expect_true(!is.null(fitted_wflow$estimate))
-  expect_true(!is.null(fitted_wflow$variance))
-  expect_equal(length(fitted_wflow$eif), nrow(sim_data))
+  expect_true(!is.null(fitted_wflow$estimates))
+  expect_true(!is.null(fitted_wflow$variances))
+  expect_equal(nrow(fitted_wflow$eif), nrow(sim_data))
+  expect_equal(ncol(fitted_wflow$eif), 2)
 
   # Test prediction types
-  pred_est <- predict(fitted_wflow, type = "estimate")
+  pred_est <- predict(fitted_wflow, type = "potential_outcome")
   expect_true(tibble::is_tibble(pred_est))
-  expect_equal(names(pred_est), c(".pred", ".std_err"))
-  expect_equal(nrow(pred_est), 1)
+  expect_equal(names(pred_est), c("level", ".pred", ".std_err"))
+  expect_equal(nrow(pred_est), 2)
 
   pred_if <- predict(fitted_wflow, type = "if")
   expect_true(tibble::is_tibble(pred_if))
-  expect_equal(names(pred_if), ".pred_if")
+  expect_equal(names(pred_if), c("eif_control", "eif_treated"))
   expect_equal(nrow(pred_if), nrow(sim_data))
 
   pred_comp <- predict(fitted_wflow, type = "components")
   expect_true(tibble::is_tibble(pred_comp))
-  expect_true(all(c("g_hat", "q1_hat", "q0_hat") %in% names(pred_comp)))
+  expect_true(all(c("g_hat_control", "g_hat_treated", "q_hat_control", "q_hat_treated") %in% names(pred_comp)))
   expect_equal(nrow(pred_comp), nrow(sim_data))
 })
 

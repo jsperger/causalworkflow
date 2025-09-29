@@ -1,34 +1,33 @@
-Package: stacks
-Title: Tidy Model Stacking
-Version: 1.1.1.9001
+Package: CausalWorkflows
+Title: A Framework for Multi-Component and Staged Causal Estimators
+Version: 0.1.0
 Authors@R: c(
     person("Simon", "Couch", , "simon.couch@posit.co", role = c("aut", "cre")),
     person("Max", "Kuhn", , "max@posit.co", role = "aut"),
     person("Posit Software, PBC", role = c("cph", "fnd"),
            comment = c(ROR = "03wc8by49"))
   )
-Description: Model stacking is an ensemble technique that involves
-    training a model to combine the outputs of many diverse statistical
-    models, and has been shown to improve predictive performance in a
-    variety of settings. 'stacks' implements a grammar for
-    'tidymodels'-aligned model stacking.
+Description: Provides a framework for estimating causal effects using multi-stage,
+    modular modeling procedures. The package introduces the 'causal_workflow'
+    and 'staged_workflow' objects, which allow for flexible specification of
+    nuisance models (e.g., for propensity scores and outcome models) and the
+    final causal model. It leverages cross-fitting to mitigate the risks of
+    over-fitting when constructing estimators like the Augmented Inverse
+    Propensity Weighting (AIPW) estimator. This structure is designed to be
+    extensible to other multi-stage estimators, such as those used in
+    Q-learning.
 License: MIT + file LICENSE
-URL: https://stacks.tidymodels.org/, https://github.com/tidymodels/stacks
-BugReports: https://github.com/tidymodels/stacks/issues
+URL: https://github.com/jsperger/causalworkflows
+BugReports: https://github.com/jsperger/causalworkflows/issues
 Depends:
     R (>= 4.1)
 Imports:
-    butcher (>= 0.1.3),
     checkmate,
     cli,
     dplyr (>= 1.1.0),
-    foreach,
-    furrr,
     future,
     generics,
     ggplot2,
-    glmnet,
-    glue,
     parsnip (>= 1.2.0),
     purrr (>= 1.0.0),
     recipes (>= 1.0.10),
@@ -36,13 +35,14 @@ Imports:
     rsample (>= 1.2.0),
     stats,
     tibble (>= 2.1.3),
-    tidyr,
     tune (>= 1.2.0),
     vctrs (>= 0.6.1),
     workflows (>= 1.1.4)
 Suggests: 
+    butcher,
     covr,
-    h2o,
+    glmnet,
+    glue,
     kernlab,
     kknn,
     knitr,
@@ -51,6 +51,7 @@ Suggests:
     ranger,
     rmarkdown,
     testthat (>= 3.0.0),
+    tidyr,
     workflowsets (>= 0.1.0),
     yardstick (>= 1.1.0)
 VignetteBuilder: 
