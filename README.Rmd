@@ -10,15 +10,15 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## CausalWorkflows: A Framework for Staged Causal Estimation
+## causalworkflows: A Framework for Staged Causal Estimation
 
-`CausalWorkflows` is an R package for estimating causal effects using multi-stage, modular modeling procedures that align with the `tidymodels` framework. The package provides a flexible structure for defining and fitting causal estimators that rely on nuisance models, such as the propensity score and outcome models.
+`causalworkflows` is an R package for estimating causal effects using multi-stage, modular modeling procedures that align with the `tidymodels` framework. The package provides a flexible structure for defining and fitting causal estimators that rely on nuisance models, such as the propensity score and outcome models.
 
 The core of the package is the `causal_workflow()` object, which allows you to specify separate `tidymodels` workflows for each component of your estimator. The package then uses cross-fitting to construct robust estimates of causal effects, such as the Average Treatment Effect (ATE), using estimators like the Augmented Inverse Propensity Weighting (AIPW) estimator.
 
 ### Installation
 
-You can install the development version of `CausalWorkflows` from GitHub with:
+You can install the development version of `causalworkflows` from GitHub with:
 
 ```{r, eval = FALSE}
 # install.packages("pak")
@@ -37,7 +37,7 @@ The process of defining and fitting a causal workflow involves a few key steps:
 Here is a conceptual example of the API:
 
 ```{r, eval = FALSE}
-library(CausalWorkflows)
+library(causalworkflows)
 library(parsnip)
 library(recipes)
 library(workflows)

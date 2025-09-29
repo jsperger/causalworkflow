@@ -1,11 +1,8 @@
-Package: CausalWorkflows
+Package: causalworkflows
 Title: A Framework for Multi-Component and Staged Causal Estimators
 Version: 0.1.0
 Authors@R: c(
-    person("Simon", "Couch", , "simon.couch@posit.co", role = c("aut", "cre")),
-    person("Max", "Kuhn", , "max@posit.co", role = "aut"),
-    person("Posit Software, PBC", role = c("cph", "fnd"),
-           comment = c(ROR = "03wc8by49"))
+    person("Sperger", "John", , "josp@duck.com", role = c("aut", "cre"))
   )
 Description: Provides a framework for estimating causal effects using
     multi-stage, modular modeling procedures. The package introduces the
