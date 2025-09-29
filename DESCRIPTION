@@ -7,15 +7,15 @@ Authors@R: c(
     person("Posit Software, PBC", role = c("cph", "fnd"),
            comment = c(ROR = "03wc8by49"))
   )
-Description: Provides a framework for estimating causal effects using multi-stage,
-    modular modeling procedures. The package introduces the 'causal_workflow'
-    and 'staged_workflow' objects, which allow for flexible specification of
-    nuisance models (e.g., for propensity scores and outcome models) and the
-    final causal model. It leverages cross-fitting to mitigate the risks of
-    over-fitting when constructing estimators like the Augmented Inverse
-    Propensity Weighting (AIPW) estimator. This structure is designed to be
-    extensible to other multi-stage estimators, such as those used in
-    Q-learning.
+Description: Provides a framework for estimating causal effects using
+    multi-stage, modular modeling procedures. The package introduces the
+    'causal_workflow' and 'staged_workflow' objects, which allow for
+    flexible specification of nuisance models (e.g., for propensity scores
+    and outcome models) and the final causal model. It leverages
+    cross-fitting to mitigate the risks of over-fitting when constructing
+    estimators like the Augmented Inverse Propensity Weighting (AIPW)
+    estimator. This structure is designed to be extensible to other
+    multi-stage estimators, such as those used in Q-learning.
 License: MIT + file LICENSE
 URL: https://github.com/jsperger/causalworkflows
 BugReports: https://github.com/jsperger/causalworkflows/issues
