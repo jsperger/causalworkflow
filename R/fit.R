@@ -16,9 +16,10 @@ generics::fit
 #'
 #' @description
 #' `fit()` for a `causal_workflow` object performs a cross-fitted estimation
-#' of the specified causal effect (e.g., ATE). It uses out-of-sample
-#' predictions for the nuisance models (propensity and outcome models) to
-#' construct the efficient influence function, providing a robust estimate.
+#' of causal effects. It supports both binary and categorical treatments.
+#' It uses out-of-sample predictions for the nuisance models (propensity and
+#' outcome models) to construct the efficient influence function for each
+#' treatment level, providing robust estimates of potential outcomes.
 #'
 #' @param object A `causal_workflow` object that has been configured with
 #'   a propensity model and an outcome model.
@@ -26,10 +27,18 @@ generics::fit
 #'   treatment, outcome, and covariate variables.
 #' @param ... Not used.
 #'
-#' @return A `fitted_causal_workflow` object. This object contains the
-#'   fitted nuisance models (trained on the full dataset), the final point
-#'   estimate and its variance, the observation-level efficient influence
-#'   function values, and the out-of-sample nuisance predictions.
+#' @return A `fitted_causal_workflow` object. This object contains:
+#'   - `propensity_model_fit`, `outcome_model_fit`: The final nuisance models
+#'     fitted on the full dataset.
+#'   - `treatment_levels`: A character vector of the treatment levels.
+#'   - `estimates`: A tibble with the estimated potential outcome for each
+#'     treatment level.
+#'   - `variances`: A tibble with the variance of the potential outcome
+#'     estimator for each level.
+#'   - `eif`: A tibble of the observation-level efficient influence function
+#'     (EIF) values, with one column for each treatment level.
+#'   - `nuisance_predictions`: A tibble of the out-of-sample nuisance
+#'     predictions from the cross-fitting procedure.
 #'
 #' @export
 fit.causal_workflow <- function(object, data, ...) {
@@ -49,10 +58,6 @@ fit.causal_workflow <- function(object, data, ...) {
   # Ensure treatment is a factor and get levels for counterfactual prediction
   data[[treatment_var]] <- as.factor(data[[treatment_var]])
   treatment_levels <- levels(data[[treatment_var]])
-
-  if (length(treatment_levels) != 2) {
-    rlang::abort("The treatment variable must have exactly two levels.")
-  }
 
   # 3. Set up cross-fitting
   data_with_row <- data |> dplyr::mutate(.row = dplyr::row_number())
@@ -75,46 +80,50 @@ fit.causal_workflow <- function(object, data, ...) {
   data_with_preds <-
     dplyr::left_join(data_with_row, nuisance_preds, by = ".row")
 
-  # 6. Calculate EIF
+  # 6. Calculate EIF for each treatment level
   Y <- data_with_preds[[outcome_var]]
-  A <- as.numeric(data_with_preds[[treatment_var]] == treatment_levels[2])
-  g_hat <- data_with_preds$g_hat
-  q1_hat <- data_with_preds$q1_hat
-  q0_hat <- data_with_preds$q0_hat
+  A <- data_with_preds[[treatment_var]]
 
-  # AIPW EIF calculation
-  term1 <- q1_hat - q0_hat
-  term2 <- (A / g_hat) * (Y - q1_hat)
-  term3 <- ((1 - A) / (1 - g_hat)) * (Y - q0_hat)
+  eif_list <-
+    purrr::map(
+      treatment_levels,
+      function(lvl) {
+        g_hat_lvl <- data_with_preds[[paste0("g_hat_", lvl)]]
+        q_hat_lvl <- data_with_preds[[paste0("q_hat_", lvl)]]
+        indicator <- as.numeric(A == lvl)
 
-  eif_values <- term1 + term2 - term3
-
-  # 7. Calculate final estimate and variance
-  if (any(is.na(eif_values))) {
-    rlang::warn(
-      paste(
-        "NA values were found in the efficient influence function.",
-        "These are often caused by near-zero propensity scores and have been",
-        "removed from the final estimate."
-      )
+        eif <- (indicator / g_hat_lvl) * (Y - q_hat_lvl) + q_hat_lvl
+        eif
+      }
     )
-  }
-  ate_estimate <- mean(eif_values, na.rm = TRUE)
-  ate_variance <- stats::var(eif_values, na.rm = TRUE) / sum(!is.na(eif_values))
+
+  names(eif_list) <- paste0("eif_", treatment_levels)
+  eif_tibble <- tibble::as_tibble(eif_list)
+
+  # 7. Calculate potential outcome estimates and their variance
+  potential_outcomes <- colMeans(eif_tibble, na.rm = TRUE)
+  variance_estimates <- apply(eif_tibble, 2, stats::var, na.rm = TRUE) / colSums(!is.na(eif_tibble))
 
   # 8. Fit final models on full data
   final_g_fit <- parsnip::fit(pscore_wflow, data = data)
   final_q_fit <- parsnip::fit(outcome_wflow, data = data)
 
   # 9. Construct return object
+  estimates_tbl <- tibble::enframe(potential_outcomes, name = "level", value = ".pred") |>
+    dplyr::mutate(level = sub("eif_", "", level))
+
+  variances_tbl <- tibble::enframe(variance_estimates, name = "level", value = ".variance") |>
+    dplyr::mutate(level = sub("eif_", "", level))
+
   fitted_obj <-
     list(
       propensity_model_fit = final_g_fit,
       outcome_model_fit = final_q_fit,
       original_workflows = object,
-      estimate = ate_estimate,
-      variance = ate_variance,
-      eif = eif_values,
+      treatment_levels = treatment_levels,
+      estimates = estimates_tbl,
+      variances = variances_tbl,
+      eif = eif_tibble,
       nuisance_predictions = data_with_preds |> dplyr::select(-.row)
     )
 
@@ -140,27 +149,27 @@ fit.causal_workflow <- function(object, data, ...) {
   g_fit <- parsnip::fit(pscore_wflow, data = analysis_data)
   q_fit <- parsnip::fit(outcome_wflow, data = analysis_data)
 
-  # Get propensity scores for the assessment set
-  g_preds <- predict(g_fit, new_data = assessment_data, type = "prob")
+  # Get propensity scores for the assessment set and rename them
+  g_preds <- predict(g_fit, new_data = assessment_data, type = "prob") |>
+    dplyr::rename_with(~ paste0("g_hat_", sub(".pred_", "", .x)), .cols = dplyr::starts_with(".pred_"))
 
-  # Create counterfactual datasets for outcome prediction
-  assessment_data_a1 <- assessment_data
-  assessment_data_a1[[treatment_var]] <- factor(treatment_levels[2], levels = treatment_levels)
+  # Get potential outcome predictions for each treatment level
+  q_hat_preds <-
+    purrr::map(
+      treatment_levels,
+      function(lvl) {
+        counterfactual_data <- assessment_data
+        counterfactual_data[[treatment_var]] <- factor(lvl, levels = treatment_levels)
+        predict(q_fit, new_data = counterfactual_data) |>
+          dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
+      }
+    ) |>
+    dplyr::bind_cols()
 
-  assessment_data_a0 <- assessment_data
-  assessment_data_a0[[treatment_var]] <- factor(treatment_levels[1], levels = treatment_levels)
+  result <-
+    tibble::tibble(.row = assessment_data$.row) |>
+    dplyr::bind_cols(g_preds) |>
+    dplyr::bind_cols(q_hat_preds)
 
-  # Get counterfactual outcome predictions
-  q1_preds <- predict(q_fit, new_data = assessment_data_a1)
-  q0_preds <- predict(q_fit, new_data = assessment_data_a0)
-
-  # Propensity score for the treated level (A=1)
-  pscore_col <- paste0(".pred_", treatment_levels[2])
-
-  tibble::tibble(
-    .row = assessment_data$.row,
-    g_hat = g_preds[[pscore_col]],
-    q1_hat = q1_preds$.pred,
-    q0_hat = q0_preds$.pred
-  )
+  return(result)
 }
