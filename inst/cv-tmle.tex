@@ -1,0 +1,152 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\author{John Sperger}
+\begin{document}
+
+\section{Setting up the problem and notation}
+Consider $n$ i.i.d. observations $O_i=(X_{1,i}, A_{1,i}, X_{2,i}, A_{2,i}, Y_i)$ collected from a SMART and drawn from a distribution $P_0$. Denote the histories $H_1=X_1$ and $H_2=(X_1, A_1, X_2)$. Let \(\pi=(\pi_1, \pi_2)\) denote a DTR or treatment policy, and $Y^{\pi}$ the potential outcome when treatment is assigned using the policy $\pi$. The outcome $Y$ is assumed to be continuous and $\sigma\text{-subgaussian}$.
+
+\begin{enumerate}
+	\item \(Q_2(h_2, a_2) = E[Y \mid H_2=h_2, A_2=a_2]\)
+	\item \(Q_1(h_1, a_1) = E[Q_2(H_2, \pi_2(H_2)) \mid H_1=h_1, A_1=a_1]\)
+	\item \(Q_2(h_2, a_2) = E[Y \mid H_2=h_2, A_2=a_2]\)
+\end{enumerate}
+
+We partition the data into \(K\) folds. Let \(B\) denote the random process we use to partition the data into training sets \(T_k\) and corresponding validation sets \(V_k\). For each split \(k\), we estimate the DTR using only the training data \(T_k\), denoted as \(\hat{\pi}^{(-k)}\).
+
+We use the superscript \((-k)\) to denote quantities estimated using the training data \(T_k\) in fold $k$ and the superscript \((k)\) for quantities derived using the validation data $V_k$ in fold $k$. For example, \(\widehat{\pi}^{(-k)}\) is the DTR estimated on \(T_k\). This policy is then used to find the predicted optimal treatment sequences, \(\widehat{A}^{(k)} = \widehat{\pi}^{(-k)}(X)\), for observations in the corresponding validation fold \(V_k\).
+
+
+\subsection{Defining the target parameter}
+We are interested in the value of an \textit{estimated} optimal DTR, $\widehat{\pi}$, which is a data-adaptive parameter: $V(\widehat{\pi})=E_{P_0}[Y^{\widehat{\pi}}]$. The statistical estimand targeted by CV-TMLE is the expected performance of the DTR estimation procedure, averaged over the random splits:
+\[
+	\Psi(P_0) = E_B[V(\hat{\pi}(B))]
+\]
+
+\section{Specifying the CV-TMLE algorithm for the value of an estimated DTR}
+\subsection{Deriving the efficient influence function (EIF)}
+The EIF for the value of a fixed DTR $\pi$ remains the same regardless of the distribution of $Y$, provided the Q-functions represent the conditional means:
+$$ D(O; \pi, Q, g) = D_2(O) + D_1(O) + D_0(O) $$
+The components are:
+\[
+	\begin{aligned}
+		D_2(O) & = C_2(O; \pi, g) \left(Y - Q_2(H_2, A_2)\right)                       \\
+		D_1(O) & = C_1(O; \pi, g) \left(\max_{a_2}Q_2(H_2, a_2) - Q_1(H_1, A_1)\right) \\
+		D_0(O) & = \max_{a_1}Q_1(H_1, a_1) - V(\pi)
+	\end{aligned}
+\]
+The ``clever covariates'' are:
+\[
+	\begin{aligned}
+		C_1(O; \pi, g) & = \frac{I(A_1 = \pi_1(H_1))}{g_1(A_1|H_1)}                                          \\
+		C_2(O; \pi, g) & = \frac{I(A_1 = \pi_1(H_1))}{g_1(A_1|H_1)} \frac{I(A_2 = \pi_2(H_2))}{g_2(A_2|H_2)}
+	\end{aligned}
+\]
+
+\subsection{Enumerating the K-Fold CV-TMLE steps}
+For each fold $k \in \{1, \dots, K\}$ (Validation set $V_k$, Training set $T_k$):
+\begin{enumerate}
+	\item \textbf{Estimate the nuisance parameters on the training data $T_k$} \\
+	      Obtain initial estimates using a stacked ensemble (or Super Learner):
+	      - Propensity scores: $\widehat{g}^{(-k)}$.
+	      - Q-functions: $\widehat{Q}^{(-k)}$.
+	      - DTR: $\widehat{\pi}^{(-k)}$.
+
+	\item \textbf{Targeting Step (Fluctuation) (Validation Data $V_k$)} \\
+	      We update the initial estimates $\widehat{Q}^{(-k)}$ using the validation data $V_k$.
+
+	      \textbf{2a. Calculate Clever Covariates} \\
+	      Calculate the clever covariates using the estimates from $T_k$:
+	      $$
+		      \begin{aligned}
+			      C_1^{(k)}(O) & = C_1(O; \widehat{\pi}^{(-k)}, \widehat{g}^{(-k)}) \\
+			      C_2^{(k)}(O) & = C_2(O; \widehat{\pi}^{(-k)}, \widehat{g}^{(-k)})
+		      \end{aligned}
+	      $$
+
+	      \textbf{2b. Sequential Fluctuation (Linear Model)} \\
+	      \textbf{Stage 2 Targeting ($\widehat{Q}_2^{(-k)} \to \widehat{Q}_2^{*(k)}$)}: \\
+	      We define the linear submodel through $\widehat{Q}_2^{(-k)}$ indexed by $\epsilon_2$:
+	      $$ \widehat{Q}_{2, \epsilon_2}(H_2, A_2) = \widehat{Q}_2^{(-k)}(H_2, A_2) + \epsilon_2 C_2^{(k)}(O) $$
+	      We estimate the fluctuation parameter $\widehat{\epsilon}_2^{(k)}$ by minimizing the empirical squared error loss on the validation data $V_k$:
+	      $$ \widehat{\epsilon}_2^{(k)} = \arg\min_{\epsilon_2} \sum_{i \in V_k} \left( Y_i - \widehat{Q}_{2, \epsilon_2}(H_{2,i}, A_{2,i}) \right)^2 $$
+	      using OLS linear regression of $Y$ on the covariate $C_2^{(k)}(O)$, using $\widehat{Q}_2^{(-k)}$ as a fixed offset. The targeted Stage 2 Q-function is $\widehat{Q}_2^{*(k)} = \widehat{Q}_{2, \widehat{\epsilon}_2^{(k)}}$.
+
+	      The procedure is analogous for stage 1.
+
+	\item \textbf{Final Estimator} \\
+	      After iterating through all K folds, let $k_i$ denote the index of the validation fold containing observation $i$. The CV-TMLE point estimate is the empirical mean of the targeted Stage 1 Q-functions evaluated under the corresponding training DTR, pooled across all observations:
+	      $$ \widehat{V}_{CVTMLE} = \frac{1}{n} \sum_{i=1}^n \max_{a_1}\widehat{Q}_1^{*(k_i)}(H_{1,i}, a_1) $$
+\end{enumerate}
+
+\subsection{Inference}
+Inference relies on the asymptotic linearity of the CV-TMLE estimator. The variance is estimated using the empirical variance of the estimated Influence Curve (IC).
+\begin{enumerate}
+	\item \textbf{Estimated Influence Curve (IC)}: \\
+	      For each observation $i$, the estimated IC is the EIF evaluated at the cross-validated, targeted estimates corresponding to fold $k_i$:
+	      $$ \widehat{IC}_i = D(O_i; \widehat{\pi}^{(-k_i)}, \widehat{Q}^{*(k_i)}, \widehat{g}^{(-k_i)}) $$
+	      Explicitly:
+	      $$
+		      \begin{aligned}
+			      \widehat{IC}_i & = C_2^{(k_i)}(O_i)\left(Y_i - \widehat{Q}_2^{*(k_i)}(H_{2,i}, A_{2,i})\right)                                            \\
+			                     & + C_1^{(k_i)}(O_i)\left(\max_{a_2}\widehat{Q}_2^{*(k_i)}(H_{2,i}, a_2) - \widehat{Q}_1^{*(k_i)}(H_{1,i}, A_{1,i})\right) \\
+			                     & + \max_{a_1}\widehat{Q}_1^{*(k_i)}(H_{1,i}, a_1) - \widehat{V}_{CVTMLE}
+		      \end{aligned}
+	      $$
+
+	\item \textbf{Variance Estimation}: The asymptotic variance is estimated by the empirical variance of the estimated ICs:
+	      $$ \widehat{\sigma}^2 = \frac{1}{n} \sum_{i=1}^n (\widehat{IC}_i)^2 $$
+
+	\item \textbf{Confidence Interval}: A 95\% Wald-style confidence interval for the value of the estimated DTR, $\Psi(P_0)$, is given by:
+	      $$ \widehat{V}_{CVTMLE} \pm 1.96 \frac{\widehat{\sigma}}{\sqrt{n}} $$
+\end{enumerate}
+
+\iffalse
+	\section{Handwritten notes}
+
+	The observed data is comprised of \(n\) i.i.d. draws \(O_i = \{X_{1,i}, A_{1,i}, X_{2,i}, A_{2,i}, Y_i\}_{i=1,\dots,n}\), drawn from a distribution \(P_0\). Let \(\pi = (\pi_1, \pi_2)\) denote a two-stage dynamic treatment regime (DTR). Let \(H_1 = \{X_1\}\) and \(H_2 = \{X_1, A_1, X_2\}\) denote the histories at stage one and two, respectively, and let \(Y\) be the final outcome.
+
+	We are interested in the value of an estimated optimal policy \(\widehat{\pi}\). This value is defined as the expected potential outcome if treatments were assigned according to the policy \(\widehat{\pi}\):
+	\[
+		V(\widehat{\pi}) = E_{P_0}[Y^{\widehat{\pi}}]
+	\]
+
+	To avoid overfitting, we estimate this value using \(K\)-fold cross-validation. Let \(k=1,\dots,K\) index the folds. For each fold \(k\), let \(T_k\) be the training set and \(V_k\) be the validation set. Let \(B\) denote the random process of partitioning the data into \(K\) folds. Our target parameter is the cross-validated value of the policy:
+	\[
+		\Psi(P_0) = E_B[V(\widehat{\pi}^{(B)})]
+	\]
+	We use the superscript \((-k)\) to denote quantities estimated using the training data \(T_k\). For example, \(\widehat{\pi}^{(-k)}\) is the DTR estimated on \(T_k\). This policy is then used to find the predicted optimal treatment sequences, \(\widehat{A}^{(k)} = \widehat{\pi}^{(-k)}(X)\), for observations in the corresponding validation fold \(V_k\).
+
+	\subsection*{Cross-Validated TMLE Algorithm}
+
+	Assume the standard causal inference conditions are satisfied. Further, assume that the nuisance functions \(Q=(Q_1, Q_2)\) and \(g=(g_1, g_2)\) can be estimated consistently at a rate of \(n^{-1/2}\). Note: These assumptions are stronger than what is actually required, for example the outcome regression (\(Q\)) models may be misspecified and the value estimate will still be consistent, see Leudtke 2016 or van der Laan 2018.
+
+	The algorithm proceeds as follows for each fold \(k \in \{1, \dots, K\}\):
+	\begin{enumerate}
+		\item \textbf{Initial Estimation:} Estimate the policy \(\widehat{\pi}^{(-k)}\) and the nuisance functions \(\widehat{Q}^{(-k)} = (\widehat{Q}_1^{(-k)}, \widehat{Q}_2^{(-k)})\) and \(\widehat{g}^{(-k)} = (\widehat{g}_1^{(-k)}, \widehat{g}_2^{(-k)})\) using a stacked ensemble (e.g., Super Learner) on the training data \(T_k\).
+
+		\item \textbf{Clever Covariates:} For each observation in the \textit{validation fold} \(V_k\), calculate the ``clever covariates'' using the estimators from Step 1:
+		      \[
+			      C_{1}^{(k)}(O; \widehat{\pi}^{(-k)}, \widehat{g}^{(-k)}) = \frac{\mathbf{1}(A_1 = \widehat{\pi}_1^{(-k)}(H_1))}{\widehat{g}_1^{(-k)}(A_1 | H_1)}
+		      \]
+		      \[
+			      C_{2}^{(k)}(O; \widehat{\pi}^{(-k)}, \widehat{g}^{(-k)}) = \frac{\mathbf{1}(A_1 = \widehat{\pi}_1^{(-k)}(H_1))}{\widehat{g}_1^{(-k)}(A_1 | H_1)} \times \frac{\mathbf{1}(A_2 = \widehat{\pi}_2^{(-k)}(H_2))}{\widehat{g}_2^{(-k)}(A_2 | H_2)}
+		      \]
+
+		\item \textbf{Targeting Step (Bias Correction):} Estimate the bias correction parameters \(\epsilon_2\) and \(\epsilon_1\) by fitting fluctuation models sequentially to the data in \(V_k\).
+
+		      First, for stage 2, fit a regression for the outcome \(Y\), using \(\widehat{Q}_2^{(-k)}\) as a fixed offset:
+		      \[
+			      Y \sim \widehat{Q}_{2}^{(-k)}(H_2, A_2) + \epsilon_{2}C_{2}^{(k)}
+		      \]
+		      Let \(\widehat{\epsilon}_2\) be the estimated coefficient. The updated outcome regression is \(\widehat{Q}_{2}^{*,(-k)} = \widehat{Q}_{2}^{(-k)} + \widehat{\epsilon}_{2}C_{2}^{(k)}\).
+
+		      Next, for stage 1, compute the pseudo-outcome \(Y^*_1 = \widehat{Q}_{2}^{*,(-k)}(H_2, A_2=\widehat{\pi}_2^{(-k)}(H_2))\). Then, fit a regression for this pseudo-outcome, using \(\widehat{Q}_1^{(-k)}\) as a fixed offset:
+		      \[
+			      Y^*_1 \sim \widehat{Q}_{1}^{(-k)}(H_1, A_1) + \epsilon_{1}C_{1}^{(k)}
+		      \]
+	\end{enumerate}
+\fi
+\end{document}
