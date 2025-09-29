@@ -16,14 +16,25 @@ treatment, outcome, and covariate variables.}
 \item{...}{Not used.}
 }
 \value{
-A \code{fitted_causal_workflow} object. This object contains the
-fitted nuisance models (trained on the full dataset), the final point
-estimate and its variance, the observation-level efficient influence
-function values, and the out-of-sample nuisance predictions.
+A \code{fitted_causal_workflow} object. This object contains:
+\itemize{
+\item \code{propensity_model_fit}, \code{outcome_model_fit}: The final nuisance models
+fitted on the full dataset.
+\item \code{treatment_levels}: A character vector of the treatment levels.
+\item \code{estimates}: A tibble with the estimated potential outcome for each
+treatment level.
+\item \code{variances}: A tibble with the variance of the potential outcome
+estimator for each level.
+\item \code{eif}: A tibble of the observation-level efficient influence function
+(EIF) values, with one column for each treatment level.
+\item \code{nuisance_predictions}: A tibble of the out-of-sample nuisance
+predictions from the cross-fitting procedure.
+}
 }
 \description{
 \code{fit()} for a \code{causal_workflow} object performs a cross-fitted estimation
-of the specified causal effect (e.g., ATE). It uses out-of-sample
-predictions for the nuisance models (propensity and outcome models) to
-construct the efficient influence function, providing a robust estimate.
+of causal effects. It supports both binary and categorical treatments.
+It uses out-of-sample predictions for the nuisance models (propensity and
+outcome models) to construct the efficient influence function for each
+treatment level, providing robust estimates of potential outcomes.
 }

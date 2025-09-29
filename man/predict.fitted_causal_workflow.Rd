@@ -4,26 +4,34 @@
 \alias{predict.fitted_causal_workflow}
 \title{Predict from a fitted causal workflow}
 \usage{
-\method{predict}{fitted_causal_workflow}(object, new_data = NULL, type = "estimate", ...)
+\method{predict}{fitted_causal_workflow}(object, new_data = NULL, type = "potential_outcome", ...)
 }
 \arguments{
 \item{object}{A \code{fitted_causal_workflow} object.}
 
 \item{new_data}{A new data frame for which to generate predictions.
-Note: This is not yet used in Phase 1 but is included for API
-consistency and future development.}
+This is not yet used but is included for API consistency.}
 
 \item{type}{A character string specifying the type of prediction to return.
 Valid options are:
 \itemize{
-\item \code{"estimate"}: (Default) The final point estimate (e.g., ATE) and
-its standard error.
-\item \code{"if"}: The observation-level efficient influence function (EIF) values.
+\item \code{"potential_outcome"}: (Default) The estimated potential outcome for each
+treatment level.
+\item \code{"blip_ref"}: The treatment effect relative to a reference level (a
+"pseudo-blip"). Requires the \code{ref_level} argument.
+\item \code{"blip_avg"}: The treatment effect relative to the average of all
+treatment levels.
+\item \code{"if"}: The observation-level efficient influence function (EIF) values
+for each treatment level.
 \item \code{"components"}: The out-of-sample nuisance predictions from the
 cross-fitting procedure.
 }}
 
-\item{...}{Not used.}
+\item{...}{Additional arguments passed to the prediction method.
+\itemize{
+\item \code{ref_level}: A character string specifying the reference treatment level
+when \code{type = "blip_ref"}.
+}}
 }
 \value{
 A tibble with the requested prediction type.

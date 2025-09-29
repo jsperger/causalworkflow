@@ -191,23 +191,22 @@ test_that("`staged_workflow` can fit a compositional `causal_workflow`", {
   expect_s3_class(fitted_longitudinal$models$`1`, "fitted_causal_workflow")
   expect_s3_class(fitted_longitudinal$models$`2`, "workflow")
   expect_true(fitted_longitudinal$models$`2`$trained)
-  expect_type(fitted_longitudinal$models$`1`$estimate, "double")
+  expect_s3_class(fitted_longitudinal$models$`1`$estimates, "tbl_df")
 
   # Test predict dispatch
   new_data_s1 <- sim_data[sim_data$stage == 1, ]
   new_data_s2 <- sim_data[sim_data$stage == 2, ]
 
-  # Predict from stage 1 (causal_workflow) should return a point estimate
+  # Predict from stage 1 (causal_workflow) should return potential outcomes
   pred_point_s1 <- predict(
     fitted_longitudinal,
     new_data = new_data_s1,
     stage = 1,
-    type = "estimate"
+    type = "potential_outcome"
   )
   expect_s3_class(pred_point_s1, "tbl_df")
-  expect_true(".pred" %in% names(pred_point_s1))
-  expect_equal(nrow(pred_point_s1), 1)
-  expect_equal(pred_point_s1$.pred[1], fitted_longitudinal$models$`1`$estimate)
+  expect_true(all(c("level", ".pred", ".std_err") %in% names(pred_point_s1)))
+  expect_equal(nrow(pred_point_s1), 2)
 
   # Predict from stage 2 (standard workflow) should work
   pred_action_s2 <- predict(
