@@ -45,7 +45,7 @@ Remove environments.
 Remove fitted values.
 }
 \examples{
-\dontshow{if (FALSE) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (FALSE) withAutoprint(\{ # examplesIf}
 
 # build a regression model stack
 st <-

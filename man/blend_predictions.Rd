@@ -127,7 +127,7 @@ the source code that generated them.
 }
 
 \examples{
-\dontshow{if ((stacks:::should_run_examples(suggests = "kernlab"))) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if ((stacks:::should_run_examples(suggests = "kernlab"))) withAutoprint(\{ # examplesIf}
 # see the "Example Data" section above for
 # clarification on the objects used in these examples!
 
