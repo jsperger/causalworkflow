@@ -1,7 +1,7 @@
 # NOTE on extensibility: This basic `fit` method is designed for simple,
 # non-regularized models where in-sample prediction does not introduce
 # significant bias. For models requiring regularization or hyperparameter
-# tuning, the cross-fitting (`fit_x()`) or nested tuning (`tune_nested()`)
+# tuning, the cross-fitting (`fit_across()`) or nested tuning (`tune_nested()`)
 # methods should be used to ensure robust, unbiased estimation of causal
 # effects.
 
@@ -49,7 +49,7 @@ generics::fit
 #'   - `nuisance_predictions`: A tibble of the in-sample nuisance
 #'     predictions.
 #'
-#' @seealso `fit_x()`, `tune_nested()`
+#' @seealso `fit_across()`, `tune_nested()`
 #' @export
 fit.causal_workflow <- function(object, data, ...) {
   # 1. Validate inputs

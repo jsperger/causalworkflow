@@ -1,4 +1,4 @@
-# NOTE on extensibility: The current `fit_x.causal_workflow` implementation is
+# NOTE on extensibility: The current `fit_across.causal_workflow` implementation is
 # specialized for a binary treatment and the AIPW estimator. Future extensions
 # should aim to generalize this logic. For example, handling a multi-level
 # categorical treatment would involve iterating over treatment levels to compute
@@ -11,7 +11,7 @@
 #' Fit a causal workflow with cross-fitting
 #'
 #' @description
-#' `fit_x()` for a `causal_workflow` object performs a cross-fitted estimation
+#' `fit_across()` for a `causal_workflow` object performs a cross-fitted estimation
 #' of causal effects. It uses out-of-sample predictions for the nuisance models
 #' (propensity and outcome models) to construct the efficient influence
 #' function (EIF) for the potential outcome mean (POM), providing robust

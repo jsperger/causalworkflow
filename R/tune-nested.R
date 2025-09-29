@@ -57,6 +57,8 @@ tune_nested <- function(object, ...) {
 tune_nested.causal_workflow <- function(
     object,
     resamples,
+    treatment_var,
+    outcome_var,
     inner_v = 5,
     ...) {
   # 1. Validate inputs
@@ -65,30 +67,11 @@ tune_nested.causal_workflow <- function(
   if (!is.numeric(inner_v) || inner_v < 2) {
     rlang::abort("`inner_v` must be an integer greater than or equal to 2.")
   }
+  # treatment_var and outcome_var are now required arguments
 
   # 2. Extract workflows and variable names
   pscore_spec <- object$propensity_model
   outcome_spec <- object$outcome_model
-
-  # To extract formulas, we need a workflow. We'll just take the first one
-  # from a set. This relies on the assumption that all wflows in the set use
-  # the same formula, which is a reasonable starting point.
-  if (inherits(pscore_spec, "workflow_set")) {
-    pscore_wflow_reprex <- pscore_spec$info[[1]]$workflow[[1]]
-  } else {
-    pscore_wflow_reprex <- pscore_spec
-  }
-  if (inherits(outcome_spec, "workflow_set")) {
-    outcome_wflow_reprex <- outcome_spec$info[[1]]$workflow[[1]]
-  } else {
-    outcome_wflow_reprex <- outcome_spec
-  }
-
-  treatment_formula <- hardhat::extract_preprocessor(pscore_wflow_reprex)
-  treatment_var <- rlang::f_lhs(treatment_formula) |> rlang::as_name()
-
-  outcome_formula <- hardhat::extract_preprocessor(outcome_wflow_reprex)
-  outcome_var <- rlang::f_lhs(outcome_formula) |> rlang::as_name()
 
   # Ensure treatment is a factor and get levels for counterfactual prediction
   data <- resamples$splits[[1]]$data # Use first split to get variable info

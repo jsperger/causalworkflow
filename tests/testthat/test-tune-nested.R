@@ -65,6 +65,8 @@ test_that("tune_nested works with a single tunable workflow", {
   tuned_wflow <- tune_nested(
     aipw_spec_tune,
     resamples = outer_resamples,
+    treatment_var = "treatment",
+    outcome_var = "outcome",
     inner_v = 2
   )
 
@@ -91,6 +93,8 @@ test_that("tune_nested works with a workflow_set and stacks", {
   stacked_wflow <- tune_nested(
     aipw_spec_stack,
     resamples = outer_resamples,
+    treatment_var = "treatment",
+    outcome_var = "outcome",
     inner_v = 2
   )
 
