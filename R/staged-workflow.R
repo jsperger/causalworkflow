@@ -136,7 +136,7 @@ set_action_exclusions <- function(x, formula) {
   checkmate::assert_class(x, "staged_workflow")
   checkmate::assert_formula(formula)
 
-  if (length(formula) > 2) {
+  if (!is.null(rlang::f_lhs(formula))) {
     stop("The `formula` must be one-sided.")
   }
 

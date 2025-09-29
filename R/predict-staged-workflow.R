@@ -22,7 +22,7 @@
 #'
 #' @return
 #' A tibble with the predictions. For `type = "action"`, the column is
-#' `.pred_action"`. For `type = "value"`, the column is `.pred_value"`.
+#' `.pred_action`. For `type = "value"`, the column is `.pred_value`.
 #' @export
 predict.fitted_staged_workflow <-
   function(object,
