@@ -94,7 +94,7 @@ staged_workflow <- function() {
 #' }
 add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
   checkmate::assert_class(x, "staged_workflow")
-  checkmate::assert_multi_class(wflow, c("workflow", "causal_workflow"))
+  checkmate::assert_multi_class(wflow, c("workflow", "causal_workflow", "workflow_set"))
 
   if (is.null(stage) && is.null(stages)) {
     stop("Either `stage` or `stages` must be specified.")
@@ -107,7 +107,7 @@ add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
 
   checkmate::assert_integerish(stages, lower = 1)
 
-  wflow_type <- if (inherits(wflow, "causal_workflow")) {
+  wflow_type <- if (inherits(wflow, "causal_workflow") || inherits(wflow, "workflow_set")) {
     "multi_component"
   } else {
     "single_model"
