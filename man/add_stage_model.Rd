@@ -7,29 +7,29 @@
 add_stage_model(x, wflow, stage = NULL, stages = NULL)
 }
 \arguments{
-\item{x}{A \code{\link[=staged_workflow]{staged_workflow()}} object.}
+\item{x}{A \code{staged_workflow} object.}
 
-\item{wflow}{A \link{{.pkg tidymodels}} \link{{.cls workflow}} or a \code{\link[=causal_workflow]{causal_workflow()}}
-object to be assigned to the stage(s).}
+\item{wflow}{A \code{tidymodels} \code{workflow} or a \code{causal_workflow} object to be
+assigned to the stage(s).}
 
 \item{stage}{An integer specifying a single stage.}
 
 \item{stages}{An integer vector specifying multiple stages.}
 }
 \value{
-An updated \code{\link[=staged_workflow]{staged_workflow()}} object.
+An updated \code{staged_workflow} object.
 }
 \description{
-This verb assigns a \link{{.pkg tidymodels}} workflow to one or more stages in a
-\code{\link[=staged_workflow]{staged_workflow()}} object.
+This verb assigns a \code{tidymodels} workflow to one or more stages in a
+\code{staged_workflow} object.
 }
 \details{
 Use either the \code{stage} or \code{stages} argument to specify the assignment. If a
 workflow is already present for a given stage, it will be overwritten.
 
-When a \code{\link[=causal_workflow]{causal_workflow()}} is provided, the fitting process for that stage
+When a \link{causal_workflow} is provided, the fitting process for that stage
 will use the multi-component estimation procedure defined by Phase 1.
-When a standard \code{\link[workflows:workflow]{workflows::workflow()}} is provided, the fitting process will use the
+When a standard \link[workflows:workflow]{workflows::workflow} is provided, the fitting process will use the
 single-model Q-learning procedure from Phase 2.
 }
 \examples{

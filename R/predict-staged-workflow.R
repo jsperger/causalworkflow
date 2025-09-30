@@ -26,9 +26,25 @@
 #' @export
 predict.fitted_staged_workflow <-
   function(object, new_data, stage, type = "action", ...) {
-    checkmate::assert_class(object, "fitted_staged_workflow")
-    checkmate::assert_data_frame(new_data)
-    checkmate::assert_int(stage, lower = 1)
+    if (!inherits(object, "fitted_staged_workflow")) {
+      cli::cli_abort(
+        c(
+          "{.arg object} must be a {.cls fitted_staged_workflow} object.",
+          "x" = "You've supplied a {.cls {class(object)[[1]]}}."
+        )
+      )
+    }
+    if (!is.data.frame(new_data)) {
+      cli::cli_abort(
+        c(
+          "{.arg new_data} must be a data frame.",
+          "x" = "You've supplied a {.cls {class(new_data)[[1]]}}."
+        )
+      )
+    }
+    if (!is.numeric(stage) || length(stage) != 1 || stage < 1 || stage %% 1 != 0) {
+      cli::cli_abort("{.arg stage} must be a single positive integer.")
+    }
 
     stage_model <- object$models[[as.character(stage)]]
     if (is.null(stage_model)) {
@@ -91,8 +107,22 @@ predict.fitted_staged_workflow <-
 #' @importFrom parsnip multi_predict
 #' @export
 multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
-  checkmate::assert_class(object, "fitted_staged_workflow")
-  checkmate::assert_data_frame(new_data)
+  if (!inherits(object, "fitted_staged_workflow")) {
+    cli::cli_abort(
+      c(
+        "{.arg object} must be a {.cls fitted_staged_workflow} object.",
+        "x" = "You've supplied a {.cls {class(object)[[1]]}}."
+      )
+    )
+  }
+  if (!is.data.frame(new_data)) {
+    cli::cli_abort(
+      c(
+        "{.arg new_data} must be a data frame.",
+        "x" = "You've supplied a {.cls {class(new_data)[[1]]}}."
+      )
+    )
+  }
 
   # Check if any stage has a multi-component model, which is not supported
   # for sequential action prediction.

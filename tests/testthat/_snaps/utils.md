@@ -4,7 +4,9 @@
       check_inherits("howdy", "numeric")
     Condition
       Error:
-      ! Element "howdy" needs to inherit from `numeric`, but its class is `character`.
+      ! An object has the wrong class.
+      i Expected an object inheriting from {.cls numeric}.
+      x Instead, it has class {.cls character}.
 
 ---
 

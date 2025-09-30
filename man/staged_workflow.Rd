@@ -7,19 +7,19 @@
 staged_workflow()
 }
 \value{
-A new \code{\link[=staged_workflow]{staged_workflow()}} object.
+A new \code{staged_workflow} object.
 }
 \description{
 Initializes a \code{staged_workflow} object.
 }
 \details{
 A \code{staged_workflow} is a container for a sequence of stage-specific
-\link{{.pkg tidymodels}} workflows, designed for fitting multi-stage models like
+\code{tidymodels} workflows, designed for fitting multi-stage models like
 those used in Dynamic Treatment Regimes (DTRs).
 
 The core components are:
 \itemize{
-\item \code{stages}: A list mapping each stage to a \code{\link[workflows:workflow]{workflows::workflow()}}.
+\item \code{stages}: A list mapping each stage to a \link[workflows:workflow]{workflows::workflow}.
 \item \code{exclusions}: A formula specifying conditions under which certain
 actions are unavailable.
 }

@@ -9,15 +9,15 @@
 \arguments{
 \item{object}{A \code{\link[=causal_workflow]{causal_workflow()}} object.}
 
-\item{resamples}{An \link{{.pkg rsample}} object, such as one created by \link[{.fn rsample:vfold_cv}]{{.fn rsample::vfold_cv}}.}
+\item{resamples}{An \code{rsample} object, such as one created by \code{\link[rsample:vfold_cv]{rsample::vfold_cv()}}.}
 
-\item{grid}{A data frame of tuning hyperparameters, created by a \link{{.pkg dials}}
+\item{grid}{A data frame of tuning hyperparameters, created by a \code{dials}
 grid function.}
 
-\item{...}{Additional arguments passed to \link[{.fn tune:tune_grid}]{{.fn tune::tune_grid}}.}
+\item{...}{Additional arguments passed to \code{\link[tune:tune_grid]{tune::tune_grid()}}.}
 }
 \value{
-A \link{{.cls tune_results}} object from the underlying call to \link[{.fn tune:tune_grid}]{{.fn tune::tune_grid}}.
+A \code{tune_results} object from the underlying call to \code{\link[tune:tune_grid]{tune::tune_grid()}}.
 The user is responsible for using this result to finalize the appropriate
 workflow and update the \code{\link[=causal_workflow]{causal_workflow()}} object.
 }
@@ -25,5 +25,5 @@ workflow and update the \code{\link[=causal_workflow]{causal_workflow()}} object
 This method supports "greedy" hyperparameter tuning for a single component
 of a \code{\link[=causal_workflow]{causal_workflow()}}. It identifies which component (propensity or outcome
 model) the provided \code{grid} of hyperparameters belongs to and dispatches
-the tuning job to \link[{.fn tune:tune_grid}]{{.fn tune::tune_grid}} for that component.
+the tuning job to \code{\link[tune:tune_grid]{tune::tune_grid()}} for that component.
 }

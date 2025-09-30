@@ -67,7 +67,8 @@ test_that("tune_nested works with a single tunable workflow", {
     resamples = outer_resamples,
     treatment_var = "treatment",
     outcome_var = "outcome",
-    inner_v = 2
+    inner_v = 2,
+    metric = "roc_auc"
   )
 
   expect_s3_class(tuned_wflow, "fitted_causal_workflow")

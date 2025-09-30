@@ -66,7 +66,10 @@ predict.fitted_causal_workflow <- function(
       }
       if (!is.character(ref_level) || length(ref_level) != 1) {
         cli::cli_abort(
-          "{.arg ref_level} must be a single string."
+          c(
+            "{.arg ref_level} must be a single string.",
+            "x" = "You've supplied a {.cls {class(ref_level)[[1]]}} of length {length(ref_level)}."
+          )
         )
       }
       if (!ref_level %in% object$treatment_levels) {

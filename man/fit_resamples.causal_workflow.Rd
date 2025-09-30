@@ -15,15 +15,15 @@
 \item{object}{A \code{causal_workflow} object.}
 
 \item{resamples}{An \code{rsample} object, such as one created by
-\link[{.fn rsample:vfold_cv}]{{.fn rsample::vfold_cv}}.}
+\code{\link[rsample:vfold_cv]{rsample::vfold_cv()}}.}
 
-\item{metrics}{A \link[{.fn yardstick:metric_set}]{{.fn yardstick::metric_set}} containing the metrics to
+\item{metrics}{A \code{\link[yardstick:metric_set]{yardstick::metric_set()}} containing the metrics to
 compute for each model. If \code{NULL} (the default), standard metrics are
 chosen based on the model mode. Note: The same metrics will be applied to
 both models, so they must be compatible. For more specific control, use
 the \code{control} argument.}
 
-\item{control}{A \code{\link[tune:control_grid]{tune::control_resamples()}} object from the \link{{.pkg tune}} package used
+\item{control}{A \code{\link[tune:control_grid]{tune::control_resamples()}} object from the \code{tune} package used
 to manage the resampling process.}
 }
 \value{

@@ -18,7 +18,7 @@ cv_tmle(
 \arguments{
 \item{data}{A \code{data.frame} containing the observational data.}
 
-\item{resamples}{An \link{{.pkg rsample}} object for K-fold cross-validation.}
+\item{resamples}{An \link[rsample:rsample-package]{rsample::rsample} object for K-fold cross-validation.}
 
 \item{stages}{A named list of \code{\link[=causal_workflow]{causal_workflow()}} objects, one for each stage.}
 

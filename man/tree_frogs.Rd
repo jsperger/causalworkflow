@@ -51,7 +51,7 @@ treated with gentamicin, a compound that knocks out their lateral line
 factors inform whether an embryo hatches prematurely or not!
 }
 \details{
-Note that the data included with the \link{{.pkg stacks}} package is not necessarily
+Note that the data included with the \code{stacks} package is not necessarily
 a representative or unbiased subset of the complete dataset, and is only
 for demonstrative purposes.
 }

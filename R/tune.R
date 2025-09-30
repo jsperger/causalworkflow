@@ -8,15 +8,15 @@ tune::tune_grid
 #' This method supports "greedy" hyperparameter tuning for a single component
 #' of a [causal_workflow()]. It identifies which component (propensity or outcome
 #' model) the provided `grid` of hyperparameters belongs to and dispatches
-#' the tuning job to [{.fn tune::tune_grid}] for that component.
+#' the tuning job to [tune::tune_grid()] for that component.
 #'
 #' @param object A [causal_workflow()] object.
-#' @param resamples An [{.pkg rsample}] object, such as one created by [{.fn rsample::vfold_cv}].
-#' @param grid A data frame of tuning hyperparameters, created by a [{.pkg dials}]
+#' @param resamples An `rsample` object, such as one created by [rsample::vfold_cv()].
+#' @param grid A data frame of tuning hyperparameters, created by a `dials`
 #'   grid function.
-#' @param ... Additional arguments passed to [{.fn tune::tune_grid}].
+#' @param ... Additional arguments passed to [tune::tune_grid()].
 #'
-#' @return A [{.cls tune_results}] object from the underlying call to [{.fn tune::tune_grid}].
+#' @return A `tune_results` object from the underlying call to [tune::tune_grid()].
 #' The user is responsible for using this result to finalize the appropriate
 #' workflow and update the [causal_workflow()] object.
 #'

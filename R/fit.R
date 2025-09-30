@@ -12,7 +12,7 @@ generics::fit
 #' Fit a causal workflow
 #'
 #' @description
-#' [fit()] for a [causal_workflow()] object performs a straightforward,
+#' [{.fn fit}] for a [{.cls causal_workflow}] object performs a straightforward,
 #' non-cross-fitted estimation of causal effects. It fits the propensity and
 #' outcome models on the full dataset and uses in-sample predictions to
 #' construct the efficient influence function (EIF) for the potential outcome
@@ -23,15 +23,15 @@ generics::fit
 #' unpenalized logistic or linear regression) where the risk of overfitting is
 #' low. For more complex or regularized models, using in-sample predictions can
 #' lead to biased estimates. In those cases, it is strongly recommended to use
-#' [fit_across()] for cross-fitted estimation or [tune_nested()] for estimation with
-#' hyperparameter tuning.
+#' [{.fn fit_across}] for cross-fitted estimation or [{.fn tune_nested}] for
+#' estimation with hyperparameter tuning.
 #'
 #' The method calculates the EIF for the Potential Outcome Mean (POM) for each
 #' treatment level. The POM is the average outcome that would be observed if all
 #' individuals in the population received a specific treatment.
 #'
-#' @param object A [causal_workflow()] object that has been configured with a
-#'   propensity model and an outcome model.
+#' @param object A [{.cls causal_workflow}] object that has been configured with
+#'   a propensity model and an outcome model.
 #' @param data A data frame containing the training data, including the
 #'   treatment, outcome, and covariate variables.
 #' @param ... Not used.
@@ -49,7 +49,7 @@ generics::fit
 #'   - `nuisance_predictions`: A tibble of the in-sample nuisance
 #'     predictions.
 #'
-#' @seealso [fit_across()], [tune_nested()]
+#' @seealso [{.fn fit_across}], [{.fn tune_nested}]
 #' @export
 fit.causal_workflow <- function(object, data, ...) {
   # 1. Validate inputs
@@ -177,7 +177,10 @@ fit.causal_workflow <- function(object, data, ...) {
   }
   if (!is.data.frame(data)) {
     cli::cli_abort(
-      "{.arg data} must be a data frame, not a {.cls {class(data)[[1]]}}.",
+      c(
+        "{.arg data} must be a data frame.",
+        "x" = "You've supplied a {.cls {class(data)[[1]]}}."
+      ),
       call = call
     )
   }

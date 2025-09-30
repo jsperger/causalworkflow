@@ -41,6 +41,7 @@ tune::tune_grid
 #'   resampling, such as one created by [rsample::vfold_cv()].
 #' @param inner_resamples An `rsample` object for the inner folds, which will
 #'   be created from the analysis set of each outer fold.
+#' @param metric A character string for the metric to optimize during tuning.
 #' @param ... Additional arguments passed to the underlying tuning or fitting
 #'   functions.
 #'
@@ -60,14 +61,18 @@ tune_nested.causal_workflow <- function(
   treatment_var,
   outcome_var,
   inner_v = 5,
+  metric = NULL,
   ...
 ) {
   # 1. Validate inputs
   .check_fit_inputs(object, resamples)
   tune::check_rset(resamples)
-  if (!is.numeric(inner_v) || inner_v < 2) {
+  if (!is.numeric(inner_v) || length(inner_v) != 1 || inner_v < 2 || inner_v %% 1 != 0) {
     cli::cli_abort(
-      "{.arg inner_v} must be an integer greater than or equal to 2, not {.val {inner_v}}."
+      c(
+        "{.arg inner_v} must be a single integer greater than or equal to 2.",
+        "x" = "You've supplied a {.cls {class(inner_v)[[1]]}} with value {.val {inner_v}}."
+      )
     )
   }
   # treatment_var and outcome_var are now required arguments
@@ -91,7 +96,8 @@ tune_nested.causal_workflow <- function(
         outcome_spec = outcome_spec,
         inner_v = inner_v,
         treatment_var = treatment_var,
-        treatment_levels = treatment_levels
+        treatment_levels = treatment_levels,
+        metric = metric
       )
     )
 
@@ -172,7 +178,8 @@ tune_nested.causal_workflow <- function(
   outcome_spec,
   inner_v,
   treatment_var,
-  treatment_levels
+  treatment_levels,
+  metric
 ) {
   analysis_data <- rsample::analysis(split)
   assessment_data <- rsample::assessment(split)
@@ -181,8 +188,8 @@ tune_nested.causal_workflow <- function(
   inner_folds <- rsample::vfold_cv(analysis_data, v = inner_v)
 
   # Fit nuisance models using the inner folds for tuning/stacking
-  g_fit <- .fit_nuisance_spec(pscore_spec, inner_folds, analysis_data)
-  q_fit <- .fit_nuisance_spec(outcome_spec, inner_folds, analysis_data)
+  g_fit <- .fit_nuisance_spec(pscore_spec, inner_folds, analysis_data, metric)
+  q_fit <- .fit_nuisance_spec(outcome_spec, inner_folds, analysis_data, metric)
 
   # Generate predictions on the assessment set
   g_preds <- predict(g_fit, new_data = assessment_data, type = "prob") |>
@@ -212,13 +219,13 @@ tune_nested.causal_workflow <- function(
 }
 
 # Helper to fit a nuisance model spec (workflow or workflow_set)
-.fit_nuisance_spec <- function(spec, resamples, training_data) {
+.fit_nuisance_spec <- function(spec, resamples, training_data, metric = NULL) {
   if (inherits(spec, "workflow")) {
     # If it's a workflow, tune it if it has tunable parameters
     if (nrow(tune::tunable(spec)) > 0) {
       # tune_grid uses a default grid if not specified
       tuned <- tune::tune_grid(spec, resamples = resamples)
-      best_params <- tune::select_best(tuned)
+      best_params <- tune::select_best(tuned, metric = metric)
       tune::finalize_workflow(spec, best_params) |>
         parsnip::fit(data = training_data)
     } else {
@@ -240,5 +247,12 @@ tune_nested.causal_workflow <- function(
       stacks::add_candidates(wf_set_trained) |>
       stacks::blend_predictions() |>
       stacks::fit_members()
+  } else {
+    cli::cli_abort(
+      c(
+        "{.arg spec} must be a {.cls workflow} or {.cls workflow_set} object.",
+        "x" = "You've supplied a {.cls {class(spec)[[1]]}}."
+      )
+    )
   }
 }

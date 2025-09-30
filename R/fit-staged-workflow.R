@@ -35,14 +35,59 @@
 #' @importFrom generics fit
 #' @export
 fit.staged_workflow <- function(object, data, ..., discount = 1) {
-  checkmate::assert_class(object, "staged_workflow")
-  checkmate::assert_data_frame(data)
-  checkmate::assert_names(
-    names(data),
-    must.include = c("stage", "action", "outcome")
-  )
-  checkmate::assert_factor(data$action, any.missing = FALSE, min.levels = 1)
-  checkmate::assert_number(discount, lower = 0, upper = 1)
+  if (!inherits(object, "staged_workflow")) {
+    cli::cli_abort(
+      c(
+        "{.arg object} must be a {.cls staged_workflow} object.",
+        "x" = "You've supplied a {.cls {class(object)[[1]]}}."
+      )
+    )
+  }
+  if (!is.data.frame(data)) {
+    cli::cli_abort(
+      c(
+        "{.arg data} must be a data frame.",
+        "x" = "You've supplied a {.cls {class(data)[[1]]}}."
+      )
+    )
+  }
+  required_cols <- c("stage", "action", "outcome")
+  missing_cols <- setdiff(required_cols, names(data))
+  if (length(missing_cols) > 0) {
+    cli::cli_abort(
+      c(
+        "{.arg data} must contain the required columns.",
+        "x" = "Missing column{?s}: {.val {missing_cols}}."
+      )
+    )
+  }
+  if (!is.factor(data$action)) {
+    cli::cli_abort(
+      c(
+        "Column {.arg action} in {.arg data} must be a factor.",
+        "x" = "It is a {.cls {class(data$action)[[1]]}}."
+      )
+    )
+  }
+  if (any(is.na(data$action))) {
+    cli::cli_abort("Column {.arg action} in {.arg data} must not contain missing values.")
+  }
+  if (!is.numeric(discount) || length(discount) != 1) {
+    cli::cli_abort(
+      c(
+        "{.arg discount} must be a single number.",
+        "x" = "You've supplied a {.cls {class(discount)[[1]]}} of length {length(discount)}."
+      )
+    )
+  }
+  if (discount < 0 || discount > 1) {
+    cli::cli_abort(
+      c(
+        "{.arg discount} must be between 0 and 1.",
+        "x" = "You've supplied {.val {discount}}."
+      )
+    )
+  }
 
   stage_nums <- sort(as.numeric(names(object$stages)), decreasing = TRUE)
 
