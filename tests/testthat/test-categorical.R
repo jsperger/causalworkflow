@@ -40,9 +40,9 @@ test_that("fit.causal_workflow works with categorical treatments", {
 
   expect_s3_class(fitted_wflow_cat, "fitted_causal_workflow")
   expect_equal(fitted_wflow_cat$treatment_levels, c("a", "b", "c"))
-  expect_s3_class(fitted_wflow_cat$eif, "tbl_df")
-  expect_equal(ncol(fitted_wflow_cat$eif), 3)
-  expect_equal(nrow(fitted_wflow_cat$eif), n_cat)
+  expect_s3_class(fitted_wflow_cat$eif_pom, "tbl_df")
+  expect_equal(ncol(fitted_wflow_cat$eif_pom), 3)
+  expect_equal(nrow(fitted_wflow_cat$eif_pom), n_cat)
 })
 
 test_that("predict.fitted_causal_workflow works for type = 'potential_outcome'", {
@@ -56,8 +56,13 @@ test_that("predict.fitted_causal_workflow works for type = 'potential_outcome'",
     add_outcome_model(outcome_wflow_cat)
 
   fitted_wflow_cat <- fit(aipw_spec_cat, data = sim_data_cat)
-  pred_po <- predict(fitted_wflow_cat, type = "potential_outcome")
+  pred_po_wrapped <- predict(fitted_wflow_cat, type = "potential_outcome")
 
+  expect_s3_class(pred_po_wrapped, "tbl_df")
+  expect_equal(names(pred_po_wrapped), ".pred")
+  expect_true(is.list(pred_po_wrapped$.pred))
+
+  pred_po <- pred_po_wrapped$.pred[[1]]
   expect_s3_class(pred_po, "tbl_df")
   expect_equal(names(pred_po), c("level", ".pred", ".std_err"))
   expect_equal(nrow(pred_po), 3)
@@ -75,8 +80,13 @@ test_that("predict.fitted_causal_workflow works for type = 'blip_ref'", {
     add_outcome_model(outcome_wflow_cat)
 
   fitted_wflow_cat <- fit(aipw_spec_cat, data = sim_data_cat)
-  pred_blip_ref <- predict(fitted_wflow_cat, type = "blip_ref", ref_level = "a")
+  pred_blip_ref_wrapped <- predict(fitted_wflow_cat, type = "blip_ref", ref_level = "a")
 
+  expect_s3_class(pred_blip_ref_wrapped, "tbl_df")
+  expect_equal(names(pred_blip_ref_wrapped), ".pred")
+  expect_true(is.list(pred_blip_ref_wrapped$.pred))
+
+  pred_blip_ref <- pred_blip_ref_wrapped$.pred[[1]]
   expect_s3_class(pred_blip_ref, "tbl_df")
   expect_equal(names(pred_blip_ref), c("level", ".pred", ".std_err"))
   expect_equal(nrow(pred_blip_ref), 2)
@@ -94,8 +104,13 @@ test_that("predict.fitted_causal_workflow works for type = 'blip_avg'", {
     add_outcome_model(outcome_wflow_cat)
 
   fitted_wflow_cat <- fit(aipw_spec_cat, data = sim_data_cat)
-  pred_blip_avg <- predict(fitted_wflow_cat, type = "blip_avg")
+  pred_blip_avg_wrapped <- predict(fitted_wflow_cat, type = "blip_avg")
 
+  expect_s3_class(pred_blip_avg_wrapped, "tbl_df")
+  expect_equal(names(pred_blip_avg_wrapped), ".pred")
+  expect_true(is.list(pred_blip_avg_wrapped$.pred))
+
+  pred_blip_avg <- pred_blip_avg_wrapped$.pred[[1]]
   expect_s3_class(pred_blip_avg, "tbl_df")
   expect_equal(names(pred_blip_avg), c("level", ".pred", ".std_err"))
   expect_equal(nrow(pred_blip_avg), 3)

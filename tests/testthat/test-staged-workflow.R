@@ -120,13 +120,15 @@ test_that("`predict.fitted_staged_workflow` works for all types", {
 
   pred_action <- predict(fitted_spec, new_data, stage = 1, type = "action")
   expect_s3_class(pred_action, "tbl_df")
-  expect_equal(names(pred_action), ".pred_action")
+  expect_equal(names(pred_action), ".pred")
   expect_equal(nrow(pred_action), 10)
+  expect_s3_class(pred_action$.pred, "factor")
 
   pred_value <- predict(fitted_spec, new_data, stage = 1, type = "value")
   expect_s3_class(pred_value, "tbl_df")
-  expect_equal(names(pred_value), ".pred_value")
+  expect_equal(names(pred_value), ".pred")
   expect_equal(nrow(pred_value), 10)
+  expect_true(is.numeric(pred_value$.pred))
 })
 
 
@@ -144,14 +146,17 @@ test_that("`multi_predict.fitted_staged_workflow` works correctly", {
 
   initial_data <- sim_data[sim_data$stage == 1, ]
 
-  seq_preds <- multi_predict(fitted_spec, new_data = initial_data)
+  seq_preds_wrapped <- multi_predict(fitted_spec, new_data = initial_data)
 
+  expect_s3_class(seq_preds_wrapped, "tbl_df")
+  expect_equal(names(seq_preds_wrapped), ".pred")
+  expect_equal(nrow(seq_preds_wrapped), 10)
+  expect_true(is.list(seq_preds_wrapped$.pred))
+
+  seq_preds <- seq_preds_wrapped$.pred[[1]]
   expect_s3_class(seq_preds, "tbl_df")
-  expect_equal(
-    names(seq_preds),
-    c(".pred_value_1", ".pred_action_1", ".pred_value_2", ".pred_action_2")
-  )
-  expect_equal(nrow(seq_preds), 10)
+  expect_equal(names(seq_preds), c(".stage", ".pred_value", ".pred_action"))
+  expect_equal(nrow(seq_preds), 2)
 })
 
 
@@ -198,13 +203,15 @@ test_that("`staged_workflow` can fit a compositional `causal_workflow`", {
   new_data_s2 <- sim_data[sim_data$stage == 2, ]
 
   # Predict from stage 1 (causal_workflow) should return potential outcomes
-  pred_point_s1 <- predict(
+  pred_point_s1_wrapped <- predict(
     fitted_longitudinal,
     new_data = new_data_s1,
     stage = 1,
     type = "potential_outcome"
   )
-  expect_s3_class(pred_point_s1, "tbl_df")
+  expect_s3_class(pred_point_s1_wrapped, "tbl_df")
+  expect_equal(names(pred_point_s1_wrapped), ".pred")
+  pred_point_s1 <- pred_point_s1_wrapped$.pred[[1]]
   expect_true(all(c("level", ".pred", ".std_err") %in% names(pred_point_s1)))
   expect_equal(nrow(pred_point_s1), 2)
 
@@ -216,7 +223,8 @@ test_that("`staged_workflow` can fit a compositional `causal_workflow`", {
     type = "action"
   )
   expect_s3_class(pred_action_s2, "tbl_df")
-  expect_equal(names(pred_action_s2), ".pred_action")
+  expect_equal(names(pred_action_s2), ".pred")
+  expect_s3_class(pred_action_s2$.pred, "factor")
 
   # Test multi_predict error
   expect_error(
