@@ -7,24 +7,26 @@
 tune_nested(object, ...)
 }
 \arguments{
-\item{object}{A \code{causal_workflow} object.}
+\item{object}{A \code{\link[=causal_workflow]{causal_workflow()}} object.}
 
 \item{...}{Additional arguments passed to the underlying tuning or fitting
 functions.}
 
 \item{resamples}{An \code{rsample} object for the outer folds of nested
-resampling, such as one created by \code{rsample::vfold_cv()}.}
+resampling, such as one created by \code{\link[rsample:vfold_cv]{rsample::vfold_cv()}}.}
 
 \item{inner_resamples}{An \code{rsample} object for the inner folds, which will
 be created from the analysis set of each outer fold.}
+
+\item{metric}{A character string for the metric to optimize during tuning.}
 }
 \value{
-A \code{fitted_causal_workflow} object, similar to \code{fit_across()}, but
+A \code{fitted_causal_workflow} object, similar to \code{\link[=fit_across]{fit_across()}}, but
 where the nuisance predictions are generated from models that have been
 tuned or ensembled within the nested resampling procedure.
 }
 \description{
-\code{tune_nested()} for a \code{causal_workflow} object performs nested resampling to
+\code{\link[=tune_nested]{tune_nested()}} for a \code{\link[=causal_workflow]{causal_workflow()}} object performs nested resampling to
 either tune the hyperparameters of the nuisance models or to fit an ensemble
 of models using \code{stacks}. It provides robust, unbiased causal effect
 estimates for complex, regularized, or non-parametric models that require
@@ -44,10 +46,10 @@ perform hyperparameter tuning or ensemble fitting.
 
 This function handles two main scenarios:
 \enumerate{
-\item When a component (propensity or outcome model) is a single \code{workflow}
+\item When a component (propensity or outcome model) is a single \code{\link[workflows:workflow]{workflows::workflow()}}
 with tunable hyperparameters, \code{tune_nested()} uses the inner resamples
-to run \code{tune_grid()} to find the best hyperparameter combination.
-\item When a component is a \code{workflow_set}, \code{tune_nested()} uses the inner
+to run \code{\link[tune:tune_grid]{tune::tune_grid()}} to find the best hyperparameter combination.
+\item When a component is a \code{\link[workflowsets:workflow_set]{workflowsets::workflow_set()}}, \code{tune_nested()} uses the inner
 resamples to fit an ensemble using the \code{stacks} package. It trains each
 candidate model in the set, blends their predictions into a stacked
 ensemble, and fits the final members.

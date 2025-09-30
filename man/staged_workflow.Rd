@@ -19,7 +19,7 @@ those used in Dynamic Treatment Regimes (DTRs).
 
 The core components are:
 \itemize{
-\item \code{stages}: A list mapping each stage to a \code{workflow}.
+\item \code{stages}: A list mapping each stage to a \link[workflows:workflow]{workflows::workflow}.
 \item \code{exclusions}: A formula specifying conditions under which certain
 actions are unavailable.
 }

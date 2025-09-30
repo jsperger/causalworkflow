@@ -52,7 +52,7 @@ test_that("cv_tmle works with workflows containing recipes", {
   resamples <- rsample::vfold_cv(test_data, v = 2)
 
   q_recipe <- recipes::recipe(Y ~ X1 + A1 + X2 + A2, data = test_data) |>
-    recipes::step_dummy(A1, A2, one_hot = TRUE)
+    recipes::step_dummy(A1, A2)
   q_wflow_recipe <- workflows::workflow() |>
     workflows::add_model(parsnip::linear_reg() |> parsnip::set_engine("lm")) |>
     workflows::add_recipe(q_recipe)

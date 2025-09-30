@@ -3,7 +3,7 @@
 #' Predict from a `fitted_staged_workflow`
 #'
 #' This function generates predictions for a specific stage from a fitted
-#' `staged_workflow` object.
+#' [staged_workflow()] object.
 #'
 #' @param object A `fitted_staged_workflow` object.
 #' @param new_data A data frame containing the predictor values for the
@@ -26,13 +26,29 @@
 #' @export
 predict.fitted_staged_workflow <-
   function(object, new_data, stage, type = "action", ...) {
-    checkmate::assert_class(object, "fitted_staged_workflow")
-    checkmate::assert_data_frame(new_data)
-    checkmate::assert_int(stage, lower = 1)
+    if (!inherits(object, "fitted_staged_workflow")) {
+      cli::cli_abort(
+        c(
+          "{.arg object} must be a {.cls fitted_staged_workflow} object.",
+          "x" = "You've supplied a {.cls {class(object)[[1]]}}."
+        )
+      )
+    }
+    if (!is.data.frame(new_data)) {
+      cli::cli_abort(
+        c(
+          "{.arg new_data} must be a data frame.",
+          "x" = "You've supplied a {.cls {class(new_data)[[1]]}}."
+        )
+      )
+    }
+    if (!is.numeric(stage) || length(stage) != 1 || stage < 1 || stage %% 1 != 0) {
+      cli::cli_abort("{.arg stage} must be a single positive integer.")
+    }
 
     stage_model <- object$models[[as.character(stage)]]
     if (is.null(stage_model)) {
-      stop("No model found for stage ", stage)
+      cli::cli_abort("No model found for stage {stage}.")
     }
 
     # Dispatch to the appropriate prediction method based on model type
@@ -91,8 +107,22 @@ predict.fitted_staged_workflow <-
 #' @importFrom parsnip multi_predict
 #' @export
 multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
-  checkmate::assert_class(object, "fitted_staged_workflow")
-  checkmate::assert_data_frame(new_data)
+  if (!inherits(object, "fitted_staged_workflow")) {
+    cli::cli_abort(
+      c(
+        "{.arg object} must be a {.cls fitted_staged_workflow} object.",
+        "x" = "You've supplied a {.cls {class(object)[[1]]}}."
+      )
+    )
+  }
+  if (!is.data.frame(new_data)) {
+    cli::cli_abort(
+      c(
+        "{.arg new_data} must be a data frame.",
+        "x" = "You've supplied a {.cls {class(new_data)[[1]]}}."
+      )
+    )
+  }
 
   # Check if any stage has a multi-component model, which is not supported
   # for sequential action prediction.
@@ -101,9 +131,15 @@ multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
     ~ inherits(.x, "fitted_causal_workflow")
   )
   if (has_causal_model) {
-    stop(
-      "`multi_predict()` is only supported for staged workflows where every ",
-      "stage is a standard `workflow` (single-model Q-learning)."
+    cli::cli_abort(
+      c(
+        "{.fn multi_predict} is not supported for this workflow.",
+        "i" = paste(
+          "This method is only supported for staged workflows where every",
+          "stage is a standard {.cls workflow} (single-model Q-learning)."
+        ),
+        "x" = "One or more stages uses a {.cls causal_workflow}."
+      )
     )
   }
 

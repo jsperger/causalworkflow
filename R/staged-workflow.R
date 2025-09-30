@@ -10,7 +10,7 @@
 #' those used in Dynamic Treatment Regimes (DTRs).
 #'
 #' The core components are:
-#' - `stages`: A list mapping each stage to a `workflow`.
+#' - `stages`: A list mapping each stage to a [workflows::workflow].
 #' - `exclusions`: A formula specifying conditions under which certain
 #'   actions are unavailable.
 #'
@@ -57,9 +57,9 @@ staged_workflow <- function() {
 #' Use either the `stage` or `stages` argument to specify the assignment. If a
 #' workflow is already present for a given stage, it will be overwritten.
 #'
-#' When a `causal_workflow` is provided, the fitting process for that stage
+#' When a [causal_workflow] is provided, the fitting process for that stage
 #' will use the multi-component estimation procedure defined by Phase 1.
-#' When a standard `workflow` is provided, the fitting process will use the
+#' When a standard [workflows::workflow] is provided, the fitting process will use the
 #' single-model Q-learning procedure from Phase 2.
 #'
 #' @return
@@ -93,22 +93,39 @@ staged_workflow <- function() {
 #'   add_stage_model(general_wflow, stages = 1:2)
 #' }
 add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
-  checkmate::assert_class(x, "staged_workflow")
-  checkmate::assert_multi_class(
-    wflow,
-    c("workflow", "causal_workflow", "workflow_set")
-  )
+  if (!inherits(x, "staged_workflow")) {
+    cli::cli_abort(
+      c(
+        "{.arg x} must be a {.cls staged_workflow} object.",
+        "x" = "You've supplied a {.cls {class(x)[[1]]}}."
+      )
+    )
+  }
+  if (!inherits(wflow, "workflow") &&
+      !inherits(wflow, "causal_workflow") &&
+      !inherits(wflow, "workflow_set")) {
+    cli::cli_abort(
+      c(
+        "{.arg wflow} must be a {.cls workflow}, {.cls causal_workflow}, or {.cls workflow_set} object.",
+        "x" = "You've supplied a {.cls {class(wflow)[[1]]}}."
+      )
+    )
+  }
 
   if (is.null(stage) && is.null(stages)) {
-    stop("Either `stage` or `stages` must be specified.")
+    cli::cli_abort("Either {.arg stage} or {.arg stages} must be specified.")
   }
 
   if (!is.null(stage)) {
-    checkmate::assert_int(stage, lower = 1)
+    if (!is.numeric(stage) || length(stage) != 1 || stage < 1 || stage %% 1 != 0) {
+      cli::cli_abort("{.arg stage} must be a single positive integer.")
+    }
     stages <- stage
   }
 
-  checkmate::assert_integerish(stages, lower = 1)
+  if (!is.numeric(stages) || any(stages < 1) || any(stages %% 1 != 0)) {
+    cli::cli_abort("{.arg stages} must be a vector of positive integers.")
+  }
 
   wflow_type <- if (
     inherits(wflow, "causal_workflow") || inherits(wflow, "workflow_set")
@@ -155,11 +172,25 @@ add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
 #'   set_action_exclusions(~ action == "chemo" & tumor_size > 5)
 #' }
 set_action_exclusions <- function(x, formula) {
-  checkmate::assert_class(x, "staged_workflow")
-  checkmate::assert_formula(formula)
+  if (!inherits(x, "staged_workflow")) {
+    cli::cli_abort(
+      c(
+        "{.arg x} must be a {.cls staged_workflow} object.",
+        "x" = "You've supplied a {.cls {class(x)[[1]]}}."
+      )
+    )
+  }
+  if (!inherits(formula, "formula")) {
+    cli::cli_abort(
+      c(
+        "{.arg formula} must be a formula.",
+        "x" = "You've supplied a {.cls {class(formula)[[1]]}}."
+      )
+    )
+  }
 
   if (!is.null(rlang::f_lhs(formula))) {
-    stop("The `formula` must be one-sided.")
+    cli::cli_abort("The {.arg formula} must be one-sided.")
   }
 
   x$exclusions <- formula

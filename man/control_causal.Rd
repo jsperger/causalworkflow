@@ -40,5 +40,5 @@ control_grid(save_pred = TRUE, save_workflow = TRUE)
 
 }
 \seealso{
-See \link{example_data} for examples of these functions used in context.
+See \code{example_data} for examples of these functions used in context.
 }

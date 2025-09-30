@@ -1,7 +1,9 @@
 #' Estimate the value of a dynamic treatment regime using CV-TMLE
 #'
 #' @description
-#' `cv_tmle()` implements the Cross-Validated Targeted Maximum Likelihood
+#' `r lifecycle::badge("experimental")`
+#'
+#' [[cv_tmle()]] implements the Cross-Validated Targeted Maximum Likelihood
 #' Estimator (CV-TMLE) for the value of an estimated two-stage optimal
 #' Dynamic Treatment Regime (DTR).
 #'
@@ -10,8 +12,9 @@
 #' DTR. The process involves:
 #' 1.  **Initial Nuisance Estimation**: Within each training fold, it fits
 #'     stage-specific models for the Q-functions (outcome models) and
-#'     propensity scores (treatment models) using the provided `causal_workflow`
-#'     objects. This step uses nested resampling to tune or ensemble the models.
+#'     propensity scores (treatment models) using the provided
+#'     [`causal_workflow`] objects. This step uses nested resampling to
+#'     tune or ensemble the models.
 #' 2.  **DTR Estimation**: The fitted Q-models are used to derive an estimate
 #'     of the optimal DTR for that fold.
 #' 3.  **Targeting (Fluctuation)**: On the corresponding validation fold, the
@@ -24,7 +27,8 @@
 #'
 #' @param data A `data.frame` containing the observational data.
 #' @param resamples An `rsample` object for K-fold cross-validation.
-#' @param stages A named list of `causal_workflow` objects, one for each stage.
+#' @param stages A named list of [`causal_workflow`] objects, one for each
+#'   stage.
 #' @param actions A character vector of the column names for the treatment
 #'   variables at each stage.
 #' @param outcome A character string of the column name for the final outcome.
@@ -83,6 +87,15 @@ cv_tmle <- function(
 
 # --- Internal Helper Functions ---
 
+.safe_max <- function(x) {
+  # `max` with `na.rm = TRUE` returns -Inf if all values are NA
+  # This helper returns NA instead to avoid warnings and downstream errors.
+  if (all(is.na(x))) {
+    return(NA_real_)
+  }
+  max(x, na.rm = TRUE)
+}
+
 .process_one_fold <- function(
   split,
   stages,
@@ -101,7 +114,8 @@ cv_tmle <- function(
     assessment_data,
     stages,
     actions,
-    inner_resamples
+    inner_resamples,
+    inner_v = inner_v
   )
   data_for_targeting <- dplyr::left_join(
     assessment_data,
@@ -124,7 +138,8 @@ cv_tmle <- function(
   assessment_data,
   stages,
   actions,
-  inner_resamples
+  inner_resamples,
+  inner_v
 ) {
   q_spec_2 <- stages$`2`$outcome_model
   g_spec_2 <- stages$`2`$propensity_model
@@ -147,14 +162,19 @@ cv_tmle <- function(
   ) |>
     dplyr::bind_cols() |>
     as.matrix()
-  pseudo_outcome_1 <- apply(q2_preds_train, 1, max, na.rm = TRUE)
+  pseudo_outcome_1 <- apply(q2_preds_train, 1, .safe_max)
   analysis_data_stage1 <- dplyr::mutate(
     analysis_data,
     .pseudo_outcome = pseudo_outcome_1
   )
 
   q1_wflow <- .update_q_workflow(q_spec_1)
-  q_fit_1 <- .fit_nuisance_spec(q1_wflow, inner_resamples, analysis_data_stage1)
+  inner_resamples_stage1 <- rsample::vfold_cv(analysis_data_stage1, v = inner_v)
+  q_fit_1 <- .fit_nuisance_spec(
+    q1_wflow,
+    inner_resamples_stage1,
+    analysis_data_stage1
+  )
   g_fit_1 <- .fit_nuisance_spec(g_spec_1, inner_resamples, analysis_data)
 
   action_1_levels <- levels(assessment_data[[actions[1]]])
@@ -237,8 +257,7 @@ cv_tmle <- function(
   data_q1_fluct$pseudo_outcome_1_targeted <- apply(
     dplyr::select(data_q1_fluct, dplyr::starts_with("q2_star_")),
     1,
-    max,
-    na.rm = TRUE
+    .safe_max
   )
 
   epsilon_1 <- stats::coef(stats::glm(
@@ -258,14 +277,13 @@ cv_tmle <- function(
   q2_star_max <- apply(
     dplyr::select(data, dplyr::starts_with("q2_star_")),
     1,
-    max,
-    na.rm = TRUE
+    .safe_max
   )
+
   q1_star_max <- apply(
     dplyr::select(data, dplyr::starts_with("q1_star_")),
     1,
-    max,
-    na.rm = TRUE
+    .safe_max
   )
 
   D2 <- data$C2 * (data[[outcome]] - q2_star_observed)
@@ -293,18 +311,21 @@ cv_tmle <- function(
     )
     return(workflows::update_formula(spec, new_formula))
   } else if (inherits(spec, "workflow_set")) {
-    spec$preproc <- purrr::map(spec$preproc, function(preproc_formula) {
-      rlang::new_formula(
-        rlang::sym(".pseudo_outcome"),
-        rlang::f_rhs(preproc_formula)
-      )
+    spec$info <- purrr::map(spec$info, function(info_df) {
+      info_df$workflow <- purrr::map(info_df$workflow, .update_q_workflow)
+      info_df
     })
     return(spec)
   }
   spec
 }
 
-.fit_nuisance_spec <- function(spec, resamples, training_data) {
+.fit_nuisance_spec <- function(
+  spec,
+  resamples,
+  training_data,
+  call = rlang::caller_env()
+) {
   if (inherits(spec, "workflow")) {
     if (nrow(tune::tunable(spec)) > 0) {
       tuned <- tune::tune_grid(spec, resamples = resamples, grid = 10)
@@ -330,7 +351,11 @@ cv_tmle <- function(
         stacks::fit_members()
     )
   }
-  rlang::abort(
-    "Unsupported specification in .fit_nuisance_spec. Must be a `workflow` or `workflow_set`."
+  cli::cli_abort(
+    c(
+      "{.arg spec} must be a {.cls workflow} or {.cls workflow_set} object.",
+      "x" = "You supplied a {.cls {class(spec)[[1]]}}."
+    ),
+    call = call
   )
 }

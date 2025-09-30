@@ -27,9 +27,9 @@ This verb assigns a \code{tidymodels} workflow to one or more stages in a
 Use either the \code{stage} or \code{stages} argument to specify the assignment. If a
 workflow is already present for a given stage, it will be overwritten.
 
-When a \code{causal_workflow} is provided, the fitting process for that stage
+When a \link{causal_workflow} is provided, the fitting process for that stage
 will use the multi-component estimation procedure defined by Phase 1.
-When a standard \code{workflow} is provided, the fitting process will use the
+When a standard \link[workflows:workflow]{workflows::workflow} is provided, the fitting process will use the
 single-model Q-learning procedure from Phase 2.
 }
 \examples{

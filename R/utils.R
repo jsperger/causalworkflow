@@ -61,17 +61,24 @@ check_empty_ellipses <- function(...) {
 }
 
 check_inherits <- function(x, what, call = caller_env()) {
-  cl <- match.call()
-
-  if (!inherits(x, what)) {
-    cli_abort(
-      "Element {.val {cl$x}} needs to inherit from {.var {what}}, but its
-       class is {.var {class(x)}}.",
-      call = call
-    )
+  if (inherits(x, what)) {
+    return(invisible(TRUE))
   }
 
-  invisible(TRUE)
+  what_text <- paste0("{.cls ", what, "}")
+  what_text <- paste(what_text, collapse = " or ")
+
+  cls_text <- paste0("{.cls ", class(x), "}")
+  cls_text <- paste(cls_text, collapse = "/")
+
+  cli_abort(
+    c(
+      "An object has the wrong class.",
+      "i" = "Expected an object inheriting from {what_text}.",
+      "x" = "Instead, it has class {cls_text}."
+    ),
+    call = call
+  )
 }
 
 # adapted from ps:::is_cran_check()

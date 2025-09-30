@@ -29,7 +29,7 @@ A tibble with the predictions. For \code{type = "action"}, the column is
 }
 \description{
 This function generates predictions for a specific stage from a fitted
-\code{staged_workflow} object.
+\code{\link[=staged_workflow]{staged_workflow()}} object.
 }
 \details{
 The method retrieves the fitted model for the specified \code{stage} and predicts

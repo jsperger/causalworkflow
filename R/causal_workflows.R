@@ -7,7 +7,7 @@
 #' outcome model.
 #'
 #' The resulting `causal_workflow` object is then passed to "verb" functions
-#' like `add_propensity_model()` and `add_outcome_model()` to specify the
+#' like [add_propensity_model()] and [add_outcome_model()] to specify the
 #' analysis.
 #'
 #' @details
@@ -81,8 +81,8 @@ add_outcome_model <- function(x, spec) {
 
 check_causal_workflow <- function(x, call = rlang::caller_env()) {
   if (!inherits(x, "causal_workflow")) {
-    rlang::abort(
-      "`x` must be a `causal_workflow` object.",
+    cli::cli_abort(
+      "{.arg x} must be a {.cls causal_workflow} object, not a {.cls {class(x)[[1]]}}.",
       call = call
     )
   }
@@ -93,8 +93,8 @@ check_spec <- function(spec, call = rlang::caller_env()) {
   is_wflow_set <- inherits(spec, "workflow_set")
 
   if (!is_wflow && !is_wflow_set) {
-    rlang::abort(
-      "`spec` must be a `workflow` or `workflow_set` object.",
+    cli::cli_abort(
+      "{.arg spec} must be a {.cls workflow} or {.cls workflow_set} object, not a {.cls {class(spec)[[1]]}}.",
       call = call
     )
   }

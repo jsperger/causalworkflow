@@ -17,7 +17,7 @@
 #' @return A [tune::control_grid], [tune::control_bayes],
 #' or [tune::control_resamples] object.
 #'
-#' @seealso See [example_data] for examples of these functions used in context.
+#' @seealso See `example_data` for examples of these functions used in context.
 #'
 #' @examples
 #' library(tune)

@@ -11,7 +11,7 @@
 #' Fit a causal workflow with cross-fitting
 #'
 #' @description
-#' `fit_across()` for a `causal_workflow` object performs a cross-fitted estimation
+#' [fit_across()] for a `causal_workflow` object performs a cross-fitted estimation
 #' of causal effects. It uses out-of-sample predictions for the nuisance models
 #' (propensity and outcome models) to construct the efficient influence
 #' function (EIF) for the potential outcome mean (POM), providing robust
@@ -50,7 +50,7 @@
 #'   - `nuisance_predictions`: A tibble of the out-of-sample nuisance
 #'     predictions from the cross-fitting procedure.
 #'
-#' @seealso `fit.causal_workflow()`, `tune_nested()`
+#' @seealso [fit.causal_workflow()], [tune_nested()]
 #' @export
 fit_across <- function(object, ...) {
   UseMethod("fit_across")

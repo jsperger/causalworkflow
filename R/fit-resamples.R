@@ -5,7 +5,7 @@ tune::fit_resamples
 #' Resample a causal workflow
 #'
 #' @description
-#' `fit_resamples()` for a `causal_workflow` object evaluates the performance
+#' [fit_resamples()] for a `causal_workflow` object evaluates the performance
 #' of the two nuisance models (propensity and outcome) across a set of
 #' resamples. It provides metrics to diagnose model performance, which is
 #' crucial for the validity of the final causal estimates.
@@ -14,26 +14,25 @@ tune::fit_resamples
 #' For each resample, this function performs the following steps:
 #' 1. Fits the propensity score model on the analysis set.
 #' 2. Generates predictions on the assessment set and calculates performance
-#'    metrics (e.g., `roc_auc` for binary classification).
+#'    metrics (e.g., [roc_auc()] for binary classification).
 #' 3. Fits the outcome model on the analysis set.
 #' 4. Generates predictions on the assessment set and calculates performance
-#'    metrics (e.g., `rmse` for regression).
+#'    metrics (e.g., [rmse()] for regression).
 #'
 #' The resulting metrics are collected into a single tibble, with columns
 #' identifying which model component each metric corresponds to. This allows
 #' for a comprehensive assessment of the nuisance models before proceeding to
 #' causal effect estimation.
 #'
-#' @inheritParams tune::fit_resamples
 #' @param object A `causal_workflow` object.
 #' @param resamples An `rsample` object, such as one created by
-#'   `rsample::vfold_cv()`.
-#' @param metrics A `yardstick::metric_set()` containing the metrics to
+#'   [rsample::vfold_cv()].
+#' @param metrics A [yardstick::metric_set()] containing the metrics to
 #'   compute for each model. If `NULL` (the default), standard metrics are
 #'   chosen based on the model mode. Note: The same metrics will be applied to
 #'   both models, so they must be compatible. For more specific control, use
 #'   the `control` argument.
-#' @param control A `control_resamples()` object from the `tune` package used
+#' @param control A [tune::control_resamples()] object from the `tune` package used
 #'   to manage the resampling process.
 #'
 #' @return A resamples object with a `.metrics` column containing the performance
@@ -41,7 +40,7 @@ tune::fit_resamples
 #'   column in the metrics tibble distinguishes between `"propensity_model"`
 #'   and `"outcome_model"`.
 #'
-#' @seealso `fit.causal_workflow()`, `fit_across()`
+#' @seealso [fit.causal_workflow()], [fit_across()]
 #' @export
 fit_resamples.causal_workflow <- function(
   object,
