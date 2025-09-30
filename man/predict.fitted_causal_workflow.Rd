@@ -34,7 +34,7 @@ when \code{type = "blip_ref"}.
 }}
 }
 \value{
-A tibble with the requested prediction type.
+A tibble with a single list-column named \code{.pred}.
 }
 \description{
 Predict from a fitted causal workflow

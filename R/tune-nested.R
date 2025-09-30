@@ -35,7 +35,6 @@ tune::tune_grid
 #' set. These predictions are used to calculate the final, doubly robust causal
 #' effect estimates.
 #'
-#' @inheritParams fit_across.causal_workflow
 #' @param object A `causal_workflow` object.
 #' @param resamples An `rsample` object for the outer folds of nested
 #'   resampling, such as one created by `rsample::vfold_cv()`.
