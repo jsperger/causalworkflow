@@ -1,4 +1,4 @@
 library(testthat)
-library(stacks)
+library(causalworkflows)
 
-test_check("stacks")
+test_check("causalworkflows")

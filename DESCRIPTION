@@ -36,6 +36,7 @@ Imports:
     vctrs (>= 0.6.1),
     workflows (>= 1.1.4)
 Suggests: 
+    broom,
     butcher,
     covr,
     glmnet,

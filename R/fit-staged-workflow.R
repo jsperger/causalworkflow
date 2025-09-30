@@ -45,71 +45,20 @@ fit.staged_workflow <- function(object, data, ..., discount = 1) {
   checkmate::assert_number(discount, lower = 0, upper = 1)
 
   stage_nums <- sort(as.numeric(names(object$stages)), decreasing = TRUE)
+  actions <- levels(data$action)
 
   fitted_models <- list()
   next_stage_model <- NULL
 
   for (k in stage_nums) {
-    stage_spec <- object$stages[[as.character(k)]]
-    stage_k_wflow <- stage_spec$wflow
-    stage_k_data <- data[data$stage == k, ]
-
-    target_outcome <-
-      if (is.null(next_stage_model)) {
-        # This is the last stage (K), use observed outcome
-        stage_k_data$outcome
-      } else {
-        # This is stage k < K.
-        # First, calculate the expected future value from stage k+1.
-        value_k_plus_1 <-
-          if (inherits(next_stage_model, "fitted_causal_workflow")) {
-            # Phase 3 model at k+1: value is the final point estimate.
-            next_stage_model$estimate
-          } else {
-            # Phase 2 model at k+1: value is the max predicted Q-value.
-            actions <- unique(data$action)
-            preds_over_actions <- lapply(actions, function(act) {
-              future_data <- stage_k_data
-              future_data$action <- act
-              stats::predict(next_stage_model, new_data = future_data)$.pred
-            })
-            do.call(pmax, preds_over_actions)
-          }
-
-        # Second, calculate the pseudo-outcome for stage k based on its own type.
-        if (stage_spec$type == "multi_component") {
-          # A causal_workflow always updates the observed outcome.
-          stage_k_data$outcome + discount * value_k_plus_1
-        } else {
-          # A standard workflow checks for a one-sided vs two-sided formula.
-          wflow_formula <- hardhat::extract_preprocessor(stage_k_wflow)
-          if (!is.null(rlang::f_lhs(wflow_formula))) {
-            stage_k_data$outcome + discount * value_k_plus_1
-          } else {
-            discount * value_k_plus_1
-          }
-        }
-      }
-
-    fit_data <- stage_k_data
-    fit_data$outcome <- target_outcome
-
-    # If the original formula was one-sided, update it (only for standard workflows)
-    if (inherits(stage_k_wflow, "workflow")) {
-      wflow_formula <- hardhat::extract_preprocessor(stage_k_wflow)
-      if (is.null(rlang::f_lhs(wflow_formula))) {
-        new_formula <- rlang::new_formula(
-          lhs = rlang::sym("outcome"),
-          rhs = rlang::f_rhs(wflow_formula)
-        )
-        stage_k_wflow <- stage_k_wflow |>
-          workflows::remove_formula() |>
-          workflows::add_formula(new_formula)
-      }
-    }
-
-    # S3 dispatch will call fit.workflow or fit.causal_workflow
-    fitted_k_wflow <- parsnip::fit(stage_k_wflow, data = fit_data)
+    fitted_k_wflow <- backwards_estimation_step(
+      object = object,
+      data = data,
+      k = k,
+      next_stage_model = next_stage_model,
+      discount = discount,
+      actions = actions
+    )
 
     fitted_models[[as.character(k)]] <- fitted_k_wflow
     next_stage_model <- fitted_k_wflow
