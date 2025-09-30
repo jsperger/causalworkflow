@@ -21,8 +21,7 @@
 #' returns either the optimal action or the corresponding value.
 #'
 #' @return
-#' A tibble with the predictions. For `type = "action"`, the column is
-#' `.pred_action`. For `type = "value"`, the column is `.pred_value`.
+#' A tibble with a `.pred` column containing the predictions.
 #' @export
 predict.fitted_staged_workflow <-
   function(object, new_data, stage, type = "action", ...) {
@@ -71,14 +70,14 @@ predict.fitted_staged_workflow <-
 
       if (type == "value") {
         max_values <- do.call(pmax, as.data.frame(pred_matrix))
-        return(tibble::tibble(.pred_value = max_values))
+        return(tibble::tibble(.pred = max_values))
       }
 
       if (type == "action") {
         max_indices <- apply(pred_matrix, 1, which.max)
         best_actions <- actions[max_indices]
         return(tibble::tibble(
-          .pred_action = factor(best_actions, levels = actions)
+          .pred = factor(best_actions, levels = actions)
         ))
       }
     }
@@ -101,9 +100,9 @@ predict.fitted_staged_workflow <-
 #' at each step.
 #'
 #' @return
-#' A tibble with one row per observation in `new_data` and columns for the
-#' predicted action and value at each stage (e.g., `.pred_action_1`,
-#' `.pred_value_1`, etc.).
+#' A tibble with a single `.pred` list-column. Each element of the list is a
+#' tibble with predictions for each stage, containing the stage number,
+#' predicted value, and predicted action.
 #' @importFrom parsnip multi_predict
 #' @export
 multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
@@ -145,7 +144,9 @@ multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
 
   stage_nums <- as.numeric(names(object$models))
 
-  results <- list()
+  n_rows <- nrow(new_data)
+  results_sequences <- vector(mode = "list", length = n_rows)
+
   current_data <- new_data
 
   for (k in stage_nums) {
@@ -165,16 +166,27 @@ multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
     max_indices <- apply(pred_matrix, 1, which.max)
     best_actions <- actions[max_indices]
 
-    # Store results
-    results[[paste0(".pred_value_", k)]] <- max_values
-    results[[paste0(".pred_action_", k)]] <- factor(
-      best_actions,
-      levels = actions
-    )
+    # For each row, append the new stage's prediction
+    for (i in 1:n_rows) {
+      current_pred <-
+        tibble::tibble(
+          .stage = k,
+          .pred_value = max_values[i],
+          .pred_action = factor(best_actions[i], levels = actions)
+        )
+      if (is.null(results_sequences[[i]])) {
+        results_sequences[[i]] <- current_pred
+      } else {
+        results_sequences[[i]] <- dplyr::bind_rows(
+          results_sequences[[i]],
+          current_pred
+        )
+      }
+    }
 
     # Update data for the next stage
     current_data$action <- factor(best_actions, levels = actions)
   }
 
-  tibble::as_tibble(results)
+  tibble::tibble(.pred = results_sequences)
 }

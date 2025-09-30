@@ -61,7 +61,12 @@ test_that("fit_across.causal_workflow works", {
   )
 
   # Check that predict methods still work
-  pred_est <- predict(fitted_wflow, type = "potential_outcome")
-  expect_true(tibble::is_tibble(pred_est))
+  pred_est_wrapped <- predict(fitted_wflow, type = "potential_outcome")
+  expect_s3_class(pred_est_wrapped, "tbl_df")
+  expect_equal(names(pred_est_wrapped), ".pred")
+  expect_true(is.list(pred_est_wrapped$.pred))
+
+  pred_est <- pred_est_wrapped$.pred[[1]]
+  expect_s3_class(pred_est, "tbl_df")
   expect_equal(names(pred_est), c("level", ".pred", ".std_err"))
 })

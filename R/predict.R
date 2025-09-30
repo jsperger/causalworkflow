@@ -19,7 +19,7 @@
 #'   - `ref_level`: A character string specifying the reference treatment level
 #'     when `type = "blip_ref"`.
 #'
-#' @return A tibble with the requested prediction type.
+#' @return A tibble with a single list-column named `.pred`.
 #'
 #' @export
 predict.fitted_causal_workflow <- function(
@@ -44,7 +44,7 @@ predict.fitted_causal_workflow <- function(
   # Use eif_pom as the influence function object
   if_object <- object$eif_pom
 
-  switch(
+  res <- switch(
     type,
     "potential_outcome" = {
       res <- dplyr::left_join(object$estimates, object$variances, by = "level")
@@ -120,6 +120,8 @@ predict.fitted_causal_workflow <- function(
       })
     }
   )
+
+  tibble::tibble(.pred = list(res))
 }
 
 #' @importFrom generics augment
