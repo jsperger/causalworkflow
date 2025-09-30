@@ -4,12 +4,13 @@
 \alias{add_propensity_model}
 \title{Add a propensity model to a causal workflow}
 \usage{
-add_propensity_model(x, wflow)
+add_propensity_model(x, spec)
 }
 \arguments{
 \item{x}{A \code{causal_workflow} object.}
 
-\item{wflow}{A \code{tidymodels} \code{workflow} object for the propensity model.}
+\item{spec}{A \code{tidymodels} \code{workflow} or \code{workflow_set} object for the
+propensity model.}
 }
 \value{
 An updated \code{causal_workflow} object.

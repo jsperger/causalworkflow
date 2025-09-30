@@ -4,12 +4,13 @@
 \alias{add_outcome_model}
 \title{Add an outcome model to a causal workflow}
 \usage{
-add_outcome_model(x, wflow)
+add_outcome_model(x, spec)
 }
 \arguments{
 \item{x}{A \code{causal_workflow} object.}
 
-\item{wflow}{A \code{tidymodels} \code{workflow} object for the outcome model.}
+\item{spec}{A \code{tidymodels} \code{workflow} or \code{workflow_set} object for the
+outcome model.}
 }
 \value{
 An updated \code{causal_workflow} object.

@@ -22,7 +22,7 @@ treatment level.
 \item \code{"blip_avg"}: The treatment effect relative to the average of all
 treatment levels.
 \item \code{"if"}: The observation-level efficient influence function (EIF) values
-for each treatment level.
+for the potential outcome mean (POM) for each treatment level.
 \item \code{"components"}: The out-of-sample nuisance predictions from the
 cross-fitting procedure.
 }}
