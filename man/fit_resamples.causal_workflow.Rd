@@ -15,15 +15,15 @@
 \item{object}{A \code{causal_workflow} object.}
 
 \item{resamples}{An \code{rsample} object, such as one created by
-\code{rsample::vfold_cv()}.}
+\link[{.fn rsample:vfold_cv}]{{.fn rsample::vfold_cv}}.}
 
-\item{metrics}{A \code{yardstick::metric_set()} containing the metrics to
+\item{metrics}{A \link[{.fn yardstick:metric_set}]{{.fn yardstick::metric_set}} containing the metrics to
 compute for each model. If \code{NULL} (the default), standard metrics are
 chosen based on the model mode. Note: The same metrics will be applied to
 both models, so they must be compatible. For more specific control, use
 the \code{control} argument.}
 
-\item{control}{A \code{control_resamples()} object from the \code{tune} package used
+\item{control}{A \code{\link[tune:control_grid]{tune::control_resamples()}} object from the \link{{.pkg tune}} package used
 to manage the resampling process.}
 }
 \value{
@@ -33,7 +33,7 @@ column in the metrics tibble distinguishes between \code{"propensity_model"}
 and \code{"outcome_model"}.
 }
 \description{
-\code{fit_resamples()} for a \code{causal_workflow} object evaluates the performance
+\code{\link[=fit_resamples]{fit_resamples()}} for a \code{causal_workflow} object evaluates the performance
 of the two nuisance models (propensity and outcome) across a set of
 resamples. It provides metrics to diagnose model performance, which is
 crucial for the validity of the final causal estimates.
@@ -43,10 +43,10 @@ For each resample, this function performs the following steps:
 \enumerate{
 \item Fits the propensity score model on the analysis set.
 \item Generates predictions on the assessment set and calculates performance
-metrics (e.g., \code{roc_auc} for binary classification).
+metrics (e.g., \code{\link[yardstick:roc_auc]{yardstick::roc_auc()}} for binary classification).
 \item Fits the outcome model on the analysis set.
 \item Generates predictions on the assessment set and calculates performance
-metrics (e.g., \code{rmse} for regression).
+metrics (e.g., \code{\link[yardstick:rmse]{yardstick::rmse()}} for regression).
 }
 
 The resulting metrics are collected into a single tibble, with columns
@@ -55,5 +55,5 @@ for a comprehensive assessment of the nuisance models before proceeding to
 causal effect estimation.
 }
 \seealso{
-\code{fit.causal_workflow()}, \code{fit_across()}
+\code{\link[=fit.causal_workflow]{fit.causal_workflow()}}, \code{\link[=fit_across]{fit_across()}}
 }

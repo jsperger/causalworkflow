@@ -5,15 +5,15 @@
 #'   This is not yet used but is included for API consistency.
 #' @param type A character string specifying the type of prediction to return.
 #'   Valid options are:
-#'   - `"potential_outcome"`: (Default) The estimated potential outcome for each
+#'   - `{.val potential_outcome}`: (Default) The estimated potential outcome for each
 #'     treatment level.
-#'   - `"blip_ref"`: The treatment effect relative to a reference level (a
+#'   - `{.val blip_ref}`: The treatment effect relative to a reference level (a
 #'     "pseudo-blip"). Requires the `ref_level` argument.
-#'   - `"blip_avg"`: The treatment effect relative to the average of all
+#'   - `{.val blip_avg}`: The treatment effect relative to the average of all
 #'     treatment levels.
-#'   - `"if"`: The observation-level efficient influence function (EIF) values
+#'   - `{.val "if"}`: The observation-level efficient influence function (EIF) values
 #'     for the potential outcome mean (POM) for each treatment level.
-#'   - `"components"`: The out-of-sample nuisance predictions from the
+#'   - `{.val components}`: The out-of-sample nuisance predictions from the
 #'     cross-fitting procedure.
 #' @param ... Additional arguments passed to the prediction method.
 #'   - `ref_level`: A character string specifying the reference treatment level
@@ -60,16 +60,21 @@ predict.fitted_causal_workflow <- function(
     "blip_ref" = {
       ref_level <- dots$ref_level
       if (is.null(ref_level)) {
-        rlang::abort("`ref_level` must be specified for `type = 'blip_ref'`.")
+        cli::cli_abort(
+          "{.arg ref_level} must be specified when {.code type = \"blip_ref\"}."
+        )
       }
       if (!is.character(ref_level) || length(ref_level) != 1) {
-        rlang::abort("`ref_level` must be a single string.")
+        cli::cli_abort(
+          "{.arg ref_level} must be a single string."
+        )
       }
       if (!ref_level %in% object$treatment_levels) {
-        rlang::abort(
-          paste0(
-            "`ref_level` must be one of the following treatment levels: ",
-            paste(object$treatment_levels, collapse = ", ")
+        cli::cli_abort(
+          c(
+            "Invalid {.arg ref_level} specified.",
+            "x" = "You've supplied {.val {ref_level}}.",
+            "i" = "Available treatment levels are: {.val {object$treatment_levels}}."
           )
         )
       }

@@ -32,7 +32,7 @@ predictions from the cross-fitting procedure.
 }
 }
 \description{
-\code{fit_across()} for a \code{causal_workflow} object performs a cross-fitted estimation
+\code{\link[=fit_across]{fit_across()}} for a \code{causal_workflow} object performs a cross-fitted estimation
 of causal effects. It uses out-of-sample predictions for the nuisance models
 (propensity and outcome models) to construct the efficient influence
 function (EIF) for the potential outcome mean (POM), providing robust
@@ -53,5 +53,5 @@ Potential Outcome Mean (POM) for each treatment level, leading to more
 robust and less biased estimates of the causal effect.
 }
 \seealso{
-\code{fit.causal_workflow()}, \code{tune_nested()}
+\code{\link[=fit.causal_workflow]{fit.causal_workflow()}}, \code{\link[=tune_nested]{tune_nested()}}
 }

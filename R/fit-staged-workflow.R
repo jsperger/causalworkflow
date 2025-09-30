@@ -2,10 +2,10 @@
 
 #' Fit a `staged_workflow`
 #'
-#' This function fits the sequence of models defined in a `staged_workflow`
+#' This function fits the sequence of models defined in a [staged_workflow()]
 #' object using a backwards recursive algorithm.
 #'
-#' @param object A `staged_workflow` object.
+#' @param object A [staged_workflow()] object.
 #' @param data A data frame containing all necessary variables for all stages.
 #'   It must include columns for `stage`, `action`, and `outcome`.
 #' @param ... Not used.

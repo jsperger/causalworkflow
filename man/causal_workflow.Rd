@@ -19,7 +19,7 @@ required for a causal analysis, such as a propensity score model and an
 outcome model.
 
 The resulting \code{causal_workflow} object is then passed to "verb" functions
-like \code{add_propensity_model()} and \code{add_outcome_model()} to specify the
+like \code{\link[=add_propensity_model]{add_propensity_model()}} and \code{\link[=add_outcome_model]{add_outcome_model()}} to specify the
 analysis.
 }
 \details{

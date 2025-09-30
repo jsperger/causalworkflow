@@ -5,7 +5,7 @@ tune::tune_grid
 #' Tune and estimate a causal workflow with nested resampling
 #'
 #' @description
-#' `tune_nested()` for a `causal_workflow` object performs nested resampling to
+#' [tune_nested()] for a [causal_workflow()] object performs nested resampling to
 #' either tune the hyperparameters of the nuisance models or to fit an ensemble
 #' of models using `stacks`. It provides robust, unbiased causal effect
 #' estimates for complex, regularized, or non-parametric models that require
@@ -22,10 +22,10 @@ tune::tune_grid
 #'   perform hyperparameter tuning or ensemble fitting.
 #'
 #' This function handles two main scenarios:
-#' 1.  When a component (propensity or outcome model) is a single `workflow`
+#' 1.  When a component (propensity or outcome model) is a single [workflows::workflow()]
 #'     with tunable hyperparameters, `tune_nested()` uses the inner resamples
-#'     to run `tune_grid()` to find the best hyperparameter combination.
-#' 2.  When a component is a `workflow_set`, `tune_nested()` uses the inner
+#'     to run [tune::tune_grid()] to find the best hyperparameter combination.
+#' 2.  When a component is a [workflowsets::workflow_set()], `tune_nested()` uses the inner
 #'     resamples to fit an ensemble using the `stacks` package. It trains each
 #'     candidate model in the set, blends their predictions into a stacked
 #'     ensemble, and fits the final members.
@@ -36,15 +36,15 @@ tune::tune_grid
 #' effect estimates.
 #'
 #' @inheritParams fit_across.causal_workflow
-#' @param object A `causal_workflow` object.
+#' @param object A [causal_workflow()] object.
 #' @param resamples An `rsample` object for the outer folds of nested
-#'   resampling, such as one created by `rsample::vfold_cv()`.
+#'   resampling, such as one created by [rsample::vfold_cv()].
 #' @param inner_resamples An `rsample` object for the inner folds, which will
 #'   be created from the analysis set of each outer fold.
 #' @param ... Additional arguments passed to the underlying tuning or fitting
 #'   functions.
 #'
-#' @return A `fitted_causal_workflow` object, similar to `fit_across()`, but
+#' @return A `fitted_causal_workflow` object, similar to [fit_across()], but
 #'   where the nuisance predictions are generated from models that have been
 #'   tuned or ensembled within the nested resampling procedure.
 #'
@@ -66,7 +66,9 @@ tune_nested.causal_workflow <- function(
   .check_fit_inputs(object, resamples)
   tune::check_rset(resamples)
   if (!is.numeric(inner_v) || inner_v < 2) {
-    rlang::abort("`inner_v` must be an integer greater than or equal to 2.")
+    cli::cli_abort(
+      "{.arg inner_v} must be an integer greater than or equal to 2, not {.val {inner_v}}."
+    )
   }
   # treatment_var and outcome_var are now required arguments
 

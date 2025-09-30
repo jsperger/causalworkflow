@@ -12,7 +12,7 @@ generics::fit
 #' Fit a causal workflow
 #'
 #' @description
-#' `fit()` for a `causal_workflow` object performs a straightforward,
+#' [fit()] for a [causal_workflow()] object performs a straightforward,
 #' non-cross-fitted estimation of causal effects. It fits the propensity and
 #' outcome models on the full dataset and uses in-sample predictions to
 #' construct the efficient influence function (EIF) for the potential outcome
@@ -23,14 +23,14 @@ generics::fit
 #' unpenalized logistic or linear regression) where the risk of overfitting is
 #' low. For more complex or regularized models, using in-sample predictions can
 #' lead to biased estimates. In those cases, it is strongly recommended to use
-#' `fit_x()` for cross-fitted estimation or `tune_nested()` for estimation with
+#' [fit_across()] for cross-fitted estimation or [tune_nested()] for estimation with
 #' hyperparameter tuning.
 #'
 #' The method calculates the EIF for the Potential Outcome Mean (POM) for each
 #' treatment level. The POM is the average outcome that would be observed if all
 #' individuals in the population received a specific treatment.
 #'
-#' @param object A `causal_workflow` object that has been configured with a
+#' @param object A [causal_workflow()] object that has been configured with a
 #'   propensity model and an outcome model.
 #' @param data A data frame containing the training data, including the
 #'   treatment, outcome, and covariate variables.
@@ -49,7 +49,7 @@ generics::fit
 #'   - `nuisance_predictions`: A tibble of the in-sample nuisance
 #'     predictions.
 #'
-#' @seealso `fit_across()`, `tune_nested()`
+#' @seealso [fit_across()], [tune_nested()]
 #' @export
 fit.causal_workflow <- function(object, data, ...) {
   # 1. Validate inputs
@@ -155,13 +155,30 @@ fit.causal_workflow <- function(object, data, ...) {
 }
 
 .check_fit_inputs <- function(object, data, call = rlang::caller_env()) {
-  if (is.null(object$propensity_model) || is.null(object$outcome_model)) {
-    rlang::abort(
-      "Both a propensity model and an outcome model must be added to the workflow.",
+  if (is.null(object$propensity_model)) {
+    cli::cli_abort(
+      c(
+        "The causal workflow is not complete.",
+        "x" = "A propensity model has not been added.",
+        "i" = "Use {.fn add_propensity_model} to add a propensity model."
+      ),
+      call = call
+    )
+  }
+  if (is.null(object$outcome_model)) {
+    cli::cli_abort(
+      c(
+        "The causal workflow is not complete.",
+        "x" = "An outcome model has not been added.",
+        "i" = "Use {.fn add_outcome_model} to add an outcome model."
+      ),
       call = call
     )
   }
   if (!is.data.frame(data)) {
-    rlang::abort("`data` must be a data frame.", call = call)
+    cli::cli_abort(
+      "{.arg data} must be a data frame, not a {.cls {class(data)[[1]]}}.",
+      call = call
+    )
   }
 }

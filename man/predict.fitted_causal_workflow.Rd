@@ -15,15 +15,15 @@ This is not yet used but is included for API consistency.}
 \item{type}{A character string specifying the type of prediction to return.
 Valid options are:
 \itemize{
-\item \code{"potential_outcome"}: (Default) The estimated potential outcome for each
+\item \verb{\{.val potential_outcome\}}: (Default) The estimated potential outcome for each
 treatment level.
-\item \code{"blip_ref"}: The treatment effect relative to a reference level (a
+\item \verb{\{.val blip_ref\}}: The treatment effect relative to a reference level (a
 "pseudo-blip"). Requires the \code{ref_level} argument.
-\item \code{"blip_avg"}: The treatment effect relative to the average of all
+\item \verb{\{.val blip_avg\}}: The treatment effect relative to the average of all
 treatment levels.
-\item \code{"if"}: The observation-level efficient influence function (EIF) values
+\item \verb{\{.val "if"\}}: The observation-level efficient influence function (EIF) values
 for the potential outcome mean (POM) for each treatment level.
-\item \code{"components"}: The out-of-sample nuisance predictions from the
+\item \verb{\{.val components\}}: The out-of-sample nuisance predictions from the
 cross-fitting procedure.
 }}
 

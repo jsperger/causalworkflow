@@ -3,7 +3,7 @@
 #' Predict from a `fitted_staged_workflow`
 #'
 #' This function generates predictions for a specific stage from a fitted
-#' `staged_workflow` object.
+#' [staged_workflow()] object.
 #'
 #' @param object A `fitted_staged_workflow` object.
 #' @param new_data A data frame containing the predictor values for the
@@ -32,7 +32,7 @@ predict.fitted_staged_workflow <-
 
     stage_model <- object$models[[as.character(stage)]]
     if (is.null(stage_model)) {
-      stop("No model found for stage ", stage)
+      cli::cli_abort("No model found for stage {stage}.")
     }
 
     # Dispatch to the appropriate prediction method based on model type
@@ -101,9 +101,15 @@ multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
     ~ inherits(.x, "fitted_causal_workflow")
   )
   if (has_causal_model) {
-    stop(
-      "`multi_predict()` is only supported for staged workflows where every ",
-      "stage is a standard `workflow` (single-model Q-learning)."
+    cli::cli_abort(
+      c(
+        "{.fn multi_predict} is not supported for this workflow.",
+        "i" = paste(
+          "This method is only supported for staged workflows where every",
+          "stage is a standard {.cls workflow} (single-model Q-learning)."
+        ),
+        "x" = "One or more stages uses a {.cls causal_workflow}."
+      )
     )
   }
 

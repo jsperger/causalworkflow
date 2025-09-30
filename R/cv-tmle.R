@@ -1,7 +1,9 @@
 #' Estimate the value of a dynamic treatment regime using CV-TMLE
 #'
 #' @description
-#' `cv_tmle()` implements the Cross-Validated Targeted Maximum Likelihood
+#' `r lifecycle::badge("experimental")`
+#'
+#' [cv_tmle()] implements the Cross-Validated Targeted Maximum Likelihood
 #' Estimator (CV-TMLE) for the value of an estimated two-stage optimal
 #' Dynamic Treatment Regime (DTR).
 #'
@@ -10,8 +12,9 @@
 #' DTR. The process involves:
 #' 1.  **Initial Nuisance Estimation**: Within each training fold, it fits
 #'     stage-specific models for the Q-functions (outcome models) and
-#'     propensity scores (treatment models) using the provided `causal_workflow`
-#'     objects. This step uses nested resampling to tune or ensemble the models.
+#'     propensity scores (treatment models) using the provided
+#'     [causal_workflow()] objects. This step uses nested resampling to tune or
+#'     ensemble the models.
 #' 2.  **DTR Estimation**: The fitted Q-models are used to derive an estimate
 #'     of the optimal DTR for that fold.
 #' 3.  **Targeting (Fluctuation)**: On the corresponding validation fold, the
@@ -23,8 +26,8 @@
 #'     on the empirical variance of the estimated influence curve (IC).
 #'
 #' @param data A `data.frame` containing the observational data.
-#' @param resamples An `rsample` object for K-fold cross-validation.
-#' @param stages A named list of `causal_workflow` objects, one for each stage.
+#' @param resamples An [rsample::rsample] object for K-fold cross-validation.
+#' @param stages A named list of [causal_workflow()] objects, one for each stage.
 #' @param actions A character vector of the column names for the treatment
 #'   variables at each stage.
 #' @param outcome A character string of the column name for the final outcome.
@@ -330,7 +333,7 @@ cv_tmle <- function(
         stacks::fit_members()
     )
   }
-  rlang::abort(
-    "Unsupported specification in .fit_nuisance_spec. Must be a `workflow` or `workflow_set`."
+  cli::cli_abort(
+    "Unsupported specification in {.fn .fit_nuisance_spec}. Must be a {.cls workflow} or {.cls workflow_set}, not a {.cls {class(spec)[[1]]}}."
   )
 }

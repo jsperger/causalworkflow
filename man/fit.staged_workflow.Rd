@@ -7,7 +7,7 @@
 \method{fit}{staged_workflow}(object, data, ..., discount = 1)
 }
 \arguments{
-\item{object}{A \code{staged_workflow} object.}
+\item{object}{A \code{\link[=staged_workflow]{staged_workflow()}} object.}
 
 \item{data}{A data frame containing all necessary variables for all stages.
 It must include columns for \code{stage}, \code{action}, and \code{outcome}.}
@@ -22,7 +22,7 @@ A \code{fitted_staged_workflow} object containing the ordered list of all
 fitted stage models.
 }
 \description{
-This function fits the sequence of models defined in a \code{staged_workflow}
+This function fits the sequence of models defined in a \code{\link[=staged_workflow]{staged_workflow()}}
 object using a backwards recursive algorithm.
 }
 \details{

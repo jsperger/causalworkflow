@@ -7,13 +7,13 @@
 set_action_exclusions(x, formula)
 }
 \arguments{
-\item{x}{A \code{staged_workflow} object.}
+\item{x}{A \code{\link[=staged_workflow]{staged_workflow()}} object.}
 
 \item{formula}{A formula describing the exclusion rules. The LHS should be
 empty, and the RHS should be a logical expression.}
 }
 \value{
-An updated \code{staged_workflow} object.
+An updated \code{\link[=staged_workflow]{staged_workflow()}} object.
 }
 \description{
 This verb defines rules for actions that are not available in certain states.

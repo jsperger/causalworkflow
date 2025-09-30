@@ -14,12 +14,12 @@ control_causal_resamples()
 control_causal_bayes()
 }
 \value{
-A \link[tune:control_grid]{tune::control_grid}, \link[tune:control_bayes]{tune::control_bayes},
-or \link[tune:control_grid]{tune::control_resamples} object.
+A \link[{.fn tune:control_grid}]{{.fn tune::control_grid}}, \link[{.fn tune:control_bayes}]{{.fn tune::control_bayes}},
+or \link[{.fn tune:control_resamples}]{{.fn tune::control_resamples}} object.
 }
 \description{
 Supply these light wrappers as the \code{control} argument in a
-\code{\link[tune:tune_grid]{tune::tune_grid()}}, \code{\link[tune:tune_bayes]{tune::tune_bayes()}}, or \code{\link[tune:fit_resamples]{tune::fit_resamples()}}
+\link[{.fn tune:tune_grid}]{{.fn tune::tune_grid}}, \link[{.fn tune:tune_bayes}]{{.fn tune::tune_bayes}}, or \link[{.fn tune:fit_resamples}]{{.fn tune::fit_resamples}}
 call to return the needed elements for use in cross-fitting for causal
 inference.
 
@@ -40,5 +40,5 @@ control_grid(save_pred = TRUE, save_workflow = TRUE)
 
 }
 \seealso{
-See \link{example_data} for examples of these functions used in context.
+See \link{{.fn example_data}} for examples of these functions used in context.
 }

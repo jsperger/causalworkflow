@@ -10,7 +10,7 @@
 #' those used in Dynamic Treatment Regimes (DTRs).
 #'
 #' The core components are:
-#' - `stages`: A list mapping each stage to a `workflow`.
+#' - `stages`: A list mapping each stage to a [workflows::workflow].
 #' - `exclusions`: A formula specifying conditions under which certain
 #'   actions are unavailable.
 #'
@@ -57,9 +57,9 @@ staged_workflow <- function() {
 #' Use either the `stage` or `stages` argument to specify the assignment. If a
 #' workflow is already present for a given stage, it will be overwritten.
 #'
-#' When a `causal_workflow` is provided, the fitting process for that stage
+#' When a [causal_workflow] is provided, the fitting process for that stage
 #' will use the multi-component estimation procedure defined by Phase 1.
-#' When a standard `workflow` is provided, the fitting process will use the
+#' When a standard [workflows::workflow] is provided, the fitting process will use the
 #' single-model Q-learning procedure from Phase 2.
 #'
 #' @return
@@ -100,7 +100,7 @@ add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
   )
 
   if (is.null(stage) && is.null(stages)) {
-    stop("Either `stage` or `stages` must be specified.")
+    cli::cli_abort("Either {.arg stage} or {.arg stages} must be specified.")
   }
 
   if (!is.null(stage)) {
@@ -159,7 +159,7 @@ set_action_exclusions <- function(x, formula) {
   checkmate::assert_formula(formula)
 
   if (!is.null(rlang::f_lhs(formula))) {
-    stop("The `formula` must be one-sided.")
+    cli::cli_abort("The {.arg formula} must be one-sided.")
   }
 
   x$exclusions <- formula
