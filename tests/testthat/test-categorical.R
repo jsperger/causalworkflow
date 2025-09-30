@@ -39,13 +39,14 @@ test_that("fit.causal_workflow works with categorical treatments", {
   fitted_wflow_cat <- fit(aipw_spec_cat, data = sim_data_cat)
 
   expect_s3_class(fitted_wflow_cat, "fitted_causal_workflow")
+  expect_equal(fitted_wflow_cat$treatment, "treatment")
   expect_equal(fitted_wflow_cat$treatment_levels, c("a", "b", "c"))
   expect_s3_class(fitted_wflow_cat$eif_pom, "tbl_df")
   expect_equal(ncol(fitted_wflow_cat$eif_pom), 3)
   expect_equal(nrow(fitted_wflow_cat$eif_pom), n_cat)
 })
 
-test_that("predict.fitted_causal_workflow works for type = 'potential_outcome'", {
+test_that("predict.fitted_causal_workflow works with categorical treatments", {
   skip_if_not_installed("parsnip")
   skip_if_not_installed("rsample")
   skip_if_not_installed("dplyr")
@@ -56,78 +57,36 @@ test_that("predict.fitted_causal_workflow works for type = 'potential_outcome'",
     add_outcome_model(outcome_wflow_cat)
 
   fitted_wflow_cat <- fit(aipw_spec_cat, data = sim_data_cat)
-  pred_po_wrapped <- predict(fitted_wflow_cat, type = "potential_outcome")
 
-  expect_s3_class(pred_po_wrapped, "tbl_df")
-  expect_equal(names(pred_po_wrapped), ".pred")
-  expect_true(is.list(pred_po_wrapped$.pred))
+  # Test type = "value"
+  pred_val <- predict(fitted_wflow_cat, new_data = sim_data_cat, type = "value")
+  expect_s3_class(pred_val, "tbl_df")
+  expect_equal(names(pred_val), ".pred")
+  expect_true(is.numeric(pred_val$.pred))
+  expect_equal(nrow(pred_val), n_cat)
 
-  pred_po <- pred_po_wrapped$.pred[[1]]
+  # Test type = "action"
+  pred_act <- predict(fitted_wflow_cat, new_data = sim_data_cat, type = "action")
+  expect_s3_class(pred_act, "tbl_df")
+  expect_equal(names(pred_act), ".pred")
+  expect_true(is.factor(pred_act$.pred))
+  expect_equal(levels(pred_act$.pred), c("a", "b", "c"))
+  expect_equal(nrow(pred_act), n_cat)
+
+  # Test type = "potential_outcome"
+  pred_po <- predict(
+    fitted_wflow_cat,
+    new_data = sim_data_cat,
+    type = "potential_outcome"
+  )
   expect_s3_class(pred_po, "tbl_df")
-  expect_equal(names(pred_po), c("level", ".pred", ".std_err"))
-  expect_equal(nrow(pred_po), 3)
-  expect_equal(pred_po$level, c("a", "b", "c"))
-})
-
-test_that("predict.fitted_causal_workflow works for type = 'blip_ref'", {
-  skip_if_not_installed("parsnip")
-  skip_if_not_installed("rsample")
-  skip_if_not_installed("dplyr")
-  skip_if_not_installed("nnet")
-
-  aipw_spec_cat <- causal_workflow() |>
-    add_propensity_model(pscore_wflow_cat) |>
-    add_outcome_model(outcome_wflow_cat)
-
-  fitted_wflow_cat <- fit(aipw_spec_cat, data = sim_data_cat)
-  pred_blip_ref_wrapped <- predict(fitted_wflow_cat, type = "blip_ref", ref_level = "a")
-
-  expect_s3_class(pred_blip_ref_wrapped, "tbl_df")
-  expect_equal(names(pred_blip_ref_wrapped), ".pred")
-  expect_true(is.list(pred_blip_ref_wrapped$.pred))
-
-  pred_blip_ref <- pred_blip_ref_wrapped$.pred[[1]]
-  expect_s3_class(pred_blip_ref, "tbl_df")
-  expect_equal(names(pred_blip_ref), c("level", ".pred", ".std_err"))
-  expect_equal(nrow(pred_blip_ref), 2)
-  expect_equal(pred_blip_ref$level, c("b", "c"))
-})
-
-test_that("predict.fitted_causal_workflow works for type = 'blip_avg'", {
-  skip_if_not_installed("parsnip")
-  skip_if_not_installed("rsample")
-  skip_if_not_installed("dplyr")
-  skip_if_not_installed("nnet")
-
-  aipw_spec_cat <- causal_workflow() |>
-    add_propensity_model(pscore_wflow_cat) |>
-    add_outcome_model(outcome_wflow_cat)
-
-  fitted_wflow_cat <- fit(aipw_spec_cat, data = sim_data_cat)
-  pred_blip_avg_wrapped <- predict(fitted_wflow_cat, type = "blip_avg")
-
-  expect_s3_class(pred_blip_avg_wrapped, "tbl_df")
-  expect_equal(names(pred_blip_avg_wrapped), ".pred")
-  expect_true(is.list(pred_blip_avg_wrapped$.pred))
-
-  pred_blip_avg <- pred_blip_avg_wrapped$.pred[[1]]
-  expect_s3_class(pred_blip_avg, "tbl_df")
-  expect_equal(names(pred_blip_avg), c("level", ".pred", ".std_err"))
-  expect_equal(nrow(pred_blip_avg), 3)
-})
-
-test_that("predict with blip_ref errors correctly", {
-  skip_if_not_installed("parsnip")
-  skip_if_not_installed("rsample")
-  skip_if_not_installed("dplyr")
-  skip_if_not_installed("nnet")
-
-  aipw_spec_cat <- causal_workflow() |>
-    add_propensity_model(pscore_wflow_cat) |>
-    add_outcome_model(outcome_wflow_cat)
-
-  fitted_wflow_cat <- fit(aipw_spec_cat, data = sim_data_cat)
-
-  expect_error(predict(fitted_wflow_cat, type = "blip_ref"))
-  expect_error(predict(fitted_wflow_cat, type = "blip_ref", ref_level = "d"))
+  expect_equal(names(pred_po), ".pred")
+  expect_true(is.list(pred_po$.pred))
+  expect_equal(nrow(pred_po), n_cat)
+  # Check nested structure
+  first_po <- pred_po$.pred[[1]]
+  expect_s3_class(first_po, "tbl_df")
+  expect_equal(names(first_po), c("level", ".pred"))
+  expect_equal(nrow(first_po), 3)
+  expect_equal(first_po$level, c("a", "b", "c"))
 })

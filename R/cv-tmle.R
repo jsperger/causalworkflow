@@ -299,7 +299,8 @@ cv_tmle <- function(
     )
     return(workflows::update_formula(spec, new_formula))
   } else if (inherits(spec, "workflow_set")) {
-    spec$preproc <- purrr::map(spec$preproc, function(preproc_formula) {
+    spec$wfs <- purrr::map(spec$wfs, .update_q_workflow)
+    spec$info$preproc <- purrr::map(spec$info$preproc, function(preproc_formula) {
       rlang::new_formula(
         rlang::sym(".pseudo_outcome"),
         rlang::f_rhs(preproc_formula)

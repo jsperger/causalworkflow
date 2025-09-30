@@ -35,6 +35,7 @@ tune::tune_grid
 #' set. These predictions are used to calculate the final, doubly robust causal
 #' effect estimates.
 #'
+#' @inheritParams fit_across.causal_workflow
 #' @param object A `causal_workflow` object.
 #' @param resamples An `rsample` object for the outer folds of nested
 #'   resampling, such as one created by `rsample::vfold_cv()`.
@@ -154,7 +155,8 @@ tune_nested.causal_workflow <- function(
       estimates = estimates_tbl,
       variances = variances_tbl,
       eif_pom = eif_tibble,
-      nuisance_predictions = data_with_preds |> dplyr::select(-.row)
+      nuisance_predictions = data_with_preds |> dplyr::select(-.row),
+      .fitted_by = "tune_nested"
     )
 
   class(fitted_obj) <- "fitted_causal_workflow"

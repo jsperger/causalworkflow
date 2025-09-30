@@ -147,11 +147,13 @@ fit_across.causal_workflow <- function(object, data, ...) {
       propensity_model_fit = final_g_fit,
       outcome_model_fit = final_q_fit,
       original_workflows = object,
+    treatment = treatment_var,
       treatment_levels = treatment_levels,
       estimates = estimates_tbl,
       variances = variances_tbl,
       eif_pom = eif_tibble,
-      nuisance_predictions = data_with_preds |> dplyr::select(-.row)
+      nuisance_predictions = data_with_preds,
+      .fitted_by = "fit_across"
     )
 
   class(fitted_obj) <- "fitted_causal_workflow"

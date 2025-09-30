@@ -61,32 +61,38 @@ test_that("fit.causal_workflow and predict.fitted_causal_workflow work", {
   # Test fitting
   fitted_wflow <- fit(aipw_spec, data = sim_data)
   expect_s3_class(fitted_wflow, "fitted_causal_workflow")
-  expect_true(!is.null(fitted_wflow$estimates))
-  expect_true(!is.null(fitted_wflow$variances))
-  expect_equal(nrow(fitted_wflow$eif_pom), nrow(sim_data))
-  expect_equal(ncol(fitted_wflow$eif_pom), 2)
+  expect_s3_class(fitted_wflow$outcome_model, "workflow")
+  expect_equal(fitted_wflow$treatment, "treatment")
+  expect_equal(fitted_wflow$treatment_levels, c("control", "treated"))
 
   # Test prediction types
-  pred_est_wrapped <- predict(fitted_wflow, type = "potential_outcome")
-  expect_true(tibble::is_tibble(pred_est_wrapped))
-  expect_equal(names(pred_est_wrapped), ".pred")
-  pred_est <- pred_est_wrapped$.pred[[1]]
-  expect_equal(names(pred_est), c("level", ".pred", ".std_err"))
-  expect_equal(nrow(pred_est), 2)
+  # Default type is "value"
+  pred_val <- predict(fitted_wflow, new_data = sim_data)
+  expect_true(tibble::is_tibble(pred_val))
+  expect_equal(names(pred_val), ".pred")
+  expect_true(is.numeric(pred_val$.pred))
+  expect_equal(nrow(pred_val), nrow(sim_data))
 
-  pred_if_wrapped <- predict(fitted_wflow, type = "if")
-  expect_true(tibble::is_tibble(pred_if_wrapped))
-  expect_equal(names(pred_if_wrapped), ".pred")
-  pred_if <- pred_if_wrapped$.pred[[1]]
-  expect_equal(names(pred_if), c("eif_pom_control", "eif_pom_treated"))
-  expect_equal(nrow(pred_if), nrow(sim_data))
+  # Type "action"
+  pred_act <- predict(fitted_wflow, new_data = sim_data, type = "action")
+  expect_true(tibble::is_tibble(pred_act))
+  expect_equal(names(pred_act), ".pred")
+  expect_true(is.factor(pred_act$.pred))
+  expect_equal(levels(pred_act$.pred), c("control", "treated"))
+  expect_equal(nrow(pred_act), nrow(sim_data))
 
-  pred_comp_wrapped <- predict(fitted_wflow, type = "components")
-  expect_true(tibble::is_tibble(pred_comp_wrapped))
-  expect_equal(names(pred_comp_wrapped), ".pred")
-  pred_comp <- pred_comp_wrapped$.pred[[1]]
-  expect_true(all(c("g_hat_control", "g_hat_treated", "q_hat_control", "q_hat_treated") %in% names(pred_comp)))
-  expect_equal(nrow(pred_comp), nrow(sim_data))
+  # Type "potential_outcome"
+  pred_po <- predict(fitted_wflow, new_data = sim_data, type = "potential_outcome")
+  expect_true(tibble::is_tibble(pred_po))
+  expect_equal(names(pred_po), ".pred")
+  expect_true(is.list(pred_po$.pred))
+  expect_equal(nrow(pred_po), nrow(sim_data))
+  # Check the nested tibble structure
+  first_po <- pred_po$.pred[[1]]
+  expect_true(tibble::is_tibble(first_po))
+  expect_equal(names(first_po), c("level", ".pred"))
+  expect_equal(nrow(first_po), 2)
+  expect_equal(first_po$level, c("control", "treated"))
 })
 
 # Tests for tuning

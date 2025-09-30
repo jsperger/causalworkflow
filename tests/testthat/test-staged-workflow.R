@@ -196,24 +196,53 @@ test_that("`staged_workflow` can fit a compositional `causal_workflow`", {
   expect_s3_class(fitted_longitudinal$models$`1`, "fitted_causal_workflow")
   expect_s3_class(fitted_longitudinal$models$`2`, "workflow")
   expect_true(fitted_longitudinal$models$`2`$trained)
-  expect_s3_class(fitted_longitudinal$models$`1`$estimates, "tbl_df")
+  expect_s3_class(fitted_longitudinal$models$`1`$outcome_model, "workflow")
 
   # Test predict dispatch
   new_data_s1 <- sim_data[sim_data$stage == 1, ]
   new_data_s2 <- sim_data[sim_data$stage == 2, ]
 
-  # Predict from stage 1 (causal_workflow) should return potential outcomes
-  pred_point_s1_wrapped <- predict(
+  # Predict from stage 1 (causal_workflow)
+  # Test type = "potential_outcome"
+  pred_po_s1 <- predict(
     fitted_longitudinal,
     new_data = new_data_s1,
     stage = 1,
     type = "potential_outcome"
   )
-  expect_s3_class(pred_point_s1_wrapped, "tbl_df")
-  expect_equal(names(pred_point_s1_wrapped), ".pred")
-  pred_point_s1 <- pred_point_s1_wrapped$.pred[[1]]
-  expect_true(all(c("level", ".pred", ".std_err") %in% names(pred_point_s1)))
-  expect_equal(nrow(pred_point_s1), 2)
+  expect_s3_class(pred_po_s1, "tbl_df")
+  expect_equal(names(pred_po_s1), ".pred")
+  expect_true(is.list(pred_po_s1$.pred))
+  expect_equal(nrow(pred_po_s1), nrow(new_data_s1))
+  first_po <- pred_po_s1$.pred[[1]]
+  expect_true(tibble::is_tibble(first_po))
+  expect_equal(names(first_po), c("level", ".pred"))
+  expect_equal(nrow(first_po), 2)
+
+  # Test type = "value"
+  pred_val_s1 <- predict(
+    fitted_longitudinal,
+    new_data = new_data_s1,
+    stage = 1,
+    type = "value"
+  )
+  expect_s3_class(pred_val_s1, "tbl_df")
+  expect_equal(names(pred_val_s1), ".pred")
+  expect_true(is.numeric(pred_val_s1$.pred))
+  expect_equal(nrow(pred_val_s1), nrow(new_data_s1))
+
+  # Test type = "action"
+  pred_act_s1 <- predict(
+    fitted_longitudinal,
+    new_data = new_data_s1,
+    stage = 1,
+    type = "action"
+  )
+  expect_s3_class(pred_act_s1, "tbl_df")
+  expect_equal(names(pred_act_s1), ".pred")
+  expect_true(is.factor(pred_act_s1$.pred))
+  expect_equal(nrow(pred_act_s1), nrow(new_data_s1))
+
 
   # Predict from stage 2 (standard workflow) should work
   pred_action_s2 <- predict(

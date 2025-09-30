@@ -24,7 +24,8 @@ predictions.}
 \item{...}{Not used.}
 }
 \value{
-A tibble with a \code{.pred} column containing the predictions.
+A tibble with the predictions. For \code{type = "action"}, the column is
+\code{.pred_action}. For \code{type = "value"}, the column is \code{.pred_value}.
 }
 \description{
 This function generates predictions for a specific stage from a fitted

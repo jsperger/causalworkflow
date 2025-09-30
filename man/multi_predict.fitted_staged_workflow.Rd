@@ -15,9 +15,9 @@ stage of prediction.}
 \item{...}{Not used.}
 }
 \value{
-A tibble with a single \code{.pred} list-column. Each element of the list is a
-tibble with predictions for each stage, containing the stage number,
-predicted value, and predicted action.
+A tibble with one row per observation in \code{new_data} and columns for the
+predicted action and value at each stage (e.g., \code{.pred_action_1},
+\code{.pred_value_1}, etc.).
 }
 \description{
 This function predicts the optimal action and value for each stage in a

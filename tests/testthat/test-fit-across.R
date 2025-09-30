@@ -60,13 +60,30 @@ test_that("fit_across.causal_workflow works", {
     ) %in% names(fitted_wflow$nuisance_predictions))
   )
 
-  # Check that predict methods still work
-  pred_est_wrapped <- predict(fitted_wflow, type = "potential_outcome")
+  # Check that predict methods (extractor branch) still work
+  # Default type is "potential_outcome"
+  pred_est_wrapped <- predict(fitted_wflow)
   expect_s3_class(pred_est_wrapped, "tbl_df")
   expect_equal(names(pred_est_wrapped), ".pred")
   expect_true(is.list(pred_est_wrapped$.pred))
-
   pred_est <- pred_est_wrapped$.pred[[1]]
   expect_s3_class(pred_est, "tbl_df")
   expect_equal(names(pred_est), c("level", ".pred", ".std_err"))
+  expect_equal(nrow(pred_est), 2)
+
+  # Type "if"
+  pred_if_wrapped <- predict(fitted_wflow, type = "if")
+  expect_true(tibble::is_tibble(pred_if_wrapped))
+  expect_equal(names(pred_if_wrapped), ".pred")
+  pred_if <- pred_if_wrapped$.pred[[1]]
+  expect_equal(names(pred_if), c("eif_pom_control", "eif_pom_treated"))
+  expect_equal(nrow(pred_if), nrow(sim_data))
+
+  # Type "components"
+  pred_comp_wrapped <- predict(fitted_wflow, type = "components")
+  expect_true(tibble::is_tibble(pred_comp_wrapped))
+  expect_equal(names(pred_comp_wrapped), ".pred")
+  pred_comp <- pred_comp_wrapped$.pred[[1]]
+  expect_true(all(c("g_hat_control", "g_hat_treated", "q_hat_control", "q_hat_treated") %in% names(pred_comp)))
+  expect_equal(nrow(pred_comp), nrow(sim_data))
 })

@@ -142,11 +142,13 @@ fit.causal_workflow <- function(object, data, ...) {
       propensity_model_fit = g_fit,
       outcome_model_fit = q_fit,
       original_workflows = object,
+      treatment = treatment_var,
       treatment_levels = treatment_levels,
       estimates = estimates_tbl,
       variances = variances_tbl,
       eif_pom = eif_tibble,
-      nuisance_predictions = data_with_preds
+      nuisance_predictions = data_with_preds,
+      .fitted_by = "fit"
     )
 
   class(fitted_obj) <- "fitted_causal_workflow"
