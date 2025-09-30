@@ -65,3 +65,27 @@ test_that("fit_across.causal_workflow works", {
   expect_true(tibble::is_tibble(pred_est))
   expect_equal(names(pred_est), c("level", ".pred", ".std_err"))
 })
+
+# Test fit_across.staged_workflow placeholder
+# ------------------------------------------------------------------------------
+test_that("fit_across.staged_workflow placeholder throws an error", {
+  lm_wflow <- workflows::workflow() |>
+    workflows::add_model(parsnip::linear_reg()) |>
+    workflows::add_formula(outcome ~ covar1 + covar2)
+
+  staged_spec <- staged_workflow() |>
+    add_stage_model(lm_wflow, stage = 1)
+
+  # Use a simplified version of the staged data
+  sim_data_staged <- sim_data |>
+    dplyr::mutate(
+      stage = 1,
+      action = treatment,
+      outcome = outcome
+    )
+
+  expect_error(
+    fit_across(staged_spec, data = sim_data_staged),
+    "TMLE fold processing is not yet implemented."
+  )
+})

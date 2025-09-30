@@ -37,18 +37,7 @@
 #'   treatment, outcome, and covariate variables.
 #' @param ... Not used.
 #'
-#' @return A `fitted_causal_workflow` object. This object contains:
-#'   - `propensity_model_fit`, `outcome_model_fit`: The final nuisance models
-#'     fitted on the full dataset.
-#'   - `treatment_levels`: A character vector of the treatment levels.
-#'   - `estimates`: A tibble with the estimated potential outcome for each
-#'     treatment level.
-#'   - `variances`: A tibble with the variance of the potential outcome
-#'     estimator for each level.
-#'   - `eif_pom`: A tibble of the observation-level efficient influence function
-#'     (EIF) values for the POM, with one column for each treatment level.
-#'   - `nuisance_predictions`: A tibble of the out-of-sample nuisance
-#'     predictions from the cross-fitting procedure.
+#' @return A `fitted_causal_workflow` object.
 #'
 #' @seealso [fit.causal_workflow()], [tune_nested()]
 #' @export
@@ -81,9 +70,9 @@ fit_across.causal_workflow <- function(object, data, ...) {
   n_folds <- min(5, nrow(data_with_row))
   folds <- rsample::vfold_cv(data_with_row, v = n_folds)
 
-  # 4. Perform cross-fitting to get nuisance predictions
+  # 4. Perform cross-fitting to get out-of-sample nuisance predictions
   nuisance_preds <-
-    purrr::map_dfr(
+    purrr::map(
       folds$splits,
       ~ .fit_predict_one_fold(
         .x,
@@ -92,31 +81,20 @@ fit_across.causal_workflow <- function(object, data, ...) {
         treatment_var = treatment_var,
         treatment_levels = treatment_levels
       )
-    )
+    ) |>
+    purrr::list_rbind()
 
   # 5. Join predictions back to original data
   data_with_preds <-
     dplyr::left_join(data_with_row, nuisance_preds, by = ".row")
 
-  # 6. Calculate EIF for the Potential Outcome Mean (POM) for each level
-  Y <- data_with_preds[[outcome_var]]
-  A <- data_with_preds[[treatment_var]]
-
-  eif_list <-
-    purrr::map(
-      treatment_levels,
-      function(lvl) {
-        g_hat_lvl <- data_with_preds[[paste0("g_hat_", lvl)]]
-        q_hat_lvl <- data_with_preds[[paste0("q_hat_", lvl)]]
-        indicator <- as.numeric(A == lvl)
-
-        eif_pom <- (indicator / g_hat_lvl) * (Y - q_hat_lvl) + q_hat_lvl
-        eif_pom
-      }
-    )
-
-  names(eif_list) <- paste0("eif_pom_", treatment_levels)
-  eif_tibble <- tibble::as_tibble(eif_list)
+  # 6. Calculate EIF for the Potential Outcome Mean (POM)
+  eif_tibble <- .calculate_eif_pom(
+    data = data_with_preds,
+    treatment_var = treatment_var,
+    outcome_var = outcome_var,
+    treatment_levels = treatment_levels
+  )
 
   # 7. Calculate potential outcome estimates and their variance
   potential_outcomes <- colMeans(eif_tibble, na.rm = TRUE)
@@ -173,33 +151,57 @@ fit_across.causal_workflow <- function(object, data, ...) {
   g_fit <- parsnip::fit(pscore_wflow, data = analysis_data)
   q_fit <- parsnip::fit(outcome_wflow, data = analysis_data)
 
-  # Get propensity scores for the assessment set and rename them
-  g_preds <- predict(g_fit, new_data = assessment_data, type = "prob") |>
-    dplyr::rename_with(
-      ~ paste0("g_hat_", sub(".pred_", "", .x)),
-      .cols = dplyr::starts_with(".pred_")
-    )
-
-  # Get potential outcome predictions for each treatment level
-  q_hat_preds <-
-    purrr::map(
-      treatment_levels,
-      function(lvl) {
-        counterfactual_data <- assessment_data
-        counterfactual_data[[treatment_var]] <- factor(
-          lvl,
-          levels = treatment_levels
-        )
-        predict(q_fit, new_data = counterfactual_data) |>
-          dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
-      }
-    ) |>
-    dplyr::bind_cols()
+  nuisance_preds <- .get_nuisance_preds(
+    g_fit = g_fit,
+    q_fit = q_fit,
+    data = assessment_data,
+    treatment_var = treatment_var,
+    treatment_levels = treatment_levels
+  )
 
   result <-
     tibble::tibble(.row = assessment_data$.row) |>
-    dplyr::bind_cols(g_preds) |>
-    dplyr::bind_cols(q_hat_preds)
+    dplyr::bind_cols(nuisance_preds)
 
   return(result)
+}
+
+#' @export
+fit_across.staged_workflow <- function(object, data, ...) {
+  # 1. Validate inputs
+  # .check_staged_fit_inputs(object, data, discount) # Need to decide how to handle discount here
+
+  # 2. Set up cross-fitting folds
+  data_with_row <- data |> dplyr::mutate(.row = dplyr::row_number())
+  n_folds <- min(5, nrow(data_with_row))
+  folds <- rsample::vfold_cv(data_with_row, v = n_folds)
+
+  # 3. Perform cross-fitting to get out-of-sample targeted predictions
+  #    and influence curve components.
+  #    This will involve calling fit_recursive on the analysis set and
+  #    a new predict method on the assessment set.
+  fold_results <- purrr::map(
+    folds$splits,
+    ~ .fit_predict_tmle_fold(.x, object = object)
+  ) # |> purrr::list_rbind()
+
+  # 4. Pool results and compute final estimate and variance.
+  #    This logic will be extracted from the current cv_tmle function.
+
+  cli::cli_abort("`fit_across.staged_workflow` is not yet implemented.")
+}
+
+.fit_predict_tmle_fold <- function(split, object) {
+  analysis_data <- rsample::analysis(split)
+  assessment_data <- rsample::assessment(split)
+
+  # Fit the full staged workflow on the analysis data
+  # The recursive engine needs to be enhanced to handle TMLE specifics
+  fitted_staged_wflow <- fit(object, data = analysis_data)
+
+  # Predict on the assessment data to get targeted outcomes and IC components
+  # A new predict method for fitted_staged_workflow will be needed.
+  # predict(fitted_staged_wflow, new_data = assessment_data)
+
+  cli::cli_abort("TMLE fold processing is not yet implemented.")
 }

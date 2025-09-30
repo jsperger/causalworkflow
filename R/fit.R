@@ -25,30 +25,19 @@ generics::fit
 #' [fit_across()] for cross-fitted estimation or [tune_nested()] for
 #' estimation with hyperparameter tuning.
 #'
-#' The method calculates the EIF for the Potential Outcome Mean (POM) for each
-#' treatment level. The POM is the average outcome that would be observed if all
-#' individuals in the population received a specific treatment.
+#' When called within `fit.staged_workflow()`, this function will be fitted
+#' using a pseudo-outcome.
 #'
 #' @param object A `causal_workflow` object that has been configured with
 #'   a propensity model and an outcome model.
-#' @param data A data frame containing the training data, including the
-#'   treatment, outcome, and covariate variables.
+#' @param data A data frame containing the training data. When used inside
+#'   [fit.staged_workflow()], the response variable is expected to be in a
+#'   column named `outcome`.
 #' @param ... Not used.
 #'
-#' @return A `fitted_causal_workflow` object. This object contains:
-#'   - `propensity_model_fit`, `outcome_model_fit`: The nuisance models
-#'     fitted on the full dataset.
-#'   - `treatment_levels`: A character vector of the treatment levels.
-#'   - `estimates`: A tibble with the estimated potential outcome for each
-#'     treatment level.
-#'   - `variances`: A tibble with the variance of the potential outcome
-#'     estimator for each level.
-#'   - `eif_pom`: A tibble of the observation-level efficient influence function
-#'     (EIF) values for the POM, with one column for each treatment level.
-#'   - `nuisance_predictions`: A tibble of the in-sample nuisance
-#'     predictions.
+#' @return A `fitted_causal_workflow` object.
 #'
-#' @seealso [fit_across()], [tune_nested()]
+#' @seealso [fit_across()], [tune_nested()], [fit.staged_workflow()]
 #' @export
 fit.causal_workflow <- function(object, data, ...) {
   # 1. Validate inputs
@@ -61,6 +50,8 @@ fit.causal_workflow <- function(object, data, ...) {
   treatment_formula <- hardhat::extract_preprocessor(pscore_wflow)
   treatment_var <- rlang::f_lhs(treatment_formula) |> rlang::as_name()
 
+  # The recursive engine standardizes the response to the `outcome` column.
+  # A direct call to `fit` uses the original formula's LHS.
   outcome_formula <- hardhat::extract_preprocessor(outcome_wflow)
   outcome_var <- rlang::f_lhs(outcome_formula) |> rlang::as_name()
 
@@ -73,48 +64,23 @@ fit.causal_workflow <- function(object, data, ...) {
   q_fit <- parsnip::fit(outcome_wflow, data = data)
 
   # 4. Generate in-sample nuisance predictions
-  g_preds <- predict(g_fit, new_data = data, type = "prob") |>
-    dplyr::rename_with(
-      ~ paste0("g_hat_", sub(".pred_", "", .x)),
-      .cols = dplyr::starts_with(".pred_")
-    )
+  nuisance_preds <- .get_nuisance_preds(
+    g_fit = g_fit,
+    q_fit = q_fit,
+    data = data,
+    treatment_var = treatment_var,
+    treatment_levels = treatment_levels
+  )
 
-  q_hat_preds <-
-    purrr::map(
-      treatment_levels,
-      function(lvl) {
-        counterfactual_data <- data
-        counterfactual_data[[treatment_var]] <- factor(
-          lvl,
-          levels = treatment_levels
-        )
-        predict(q_fit, new_data = counterfactual_data) |>
-          dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
-      }
-    ) |>
-    dplyr::bind_cols()
+  data_with_preds <- dplyr::bind_cols(data, nuisance_preds)
 
-  data_with_preds <- dplyr::bind_cols(data, g_preds, q_hat_preds)
-
-  # 5. Calculate EIF for the Potential Outcome Mean (POM) for each level
-  Y <- data_with_preds[[outcome_var]]
-  A <- data_with_preds[[treatment_var]]
-
-  eif_list <-
-    purrr::map(
-      treatment_levels,
-      function(lvl) {
-        g_hat_lvl <- data_with_preds[[paste0("g_hat_", lvl)]]
-        q_hat_lvl <- data_with_preds[[paste0("q_hat_", lvl)]]
-        indicator <- as.numeric(A == lvl)
-
-        eif_pom <- (indicator / g_hat_lvl) * (Y - q_hat_lvl) + q_hat_lvl
-        eif_pom
-      }
-    )
-
-  names(eif_list) <- paste0("eif_pom_", treatment_levels)
-  eif_tibble <- tibble::as_tibble(eif_list)
+  # 5. Calculate EIF for the Potential Outcome Mean (POM)
+  eif_tibble <- .calculate_eif_pom(
+    data = data_with_preds,
+    treatment_var = treatment_var,
+    outcome_var = outcome_var,
+    treatment_levels = treatment_levels
+  )
 
   # 6. Calculate potential outcome estimates and their variance
   potential_outcomes <- colMeans(eif_tibble, na.rm = TRUE)
@@ -183,4 +149,70 @@ fit.causal_workflow <- function(object, data, ...) {
       call = call
     )
   }
+}
+
+# --- Internal Helpers for Nuisance Models and EIF ---
+
+#' Get nuisance model predictions
+#' @param g_fit A fitted propensity score model.
+#' @param q_fit A fitted outcome model.
+#' @param data The data to predict on.
+#' @param treatment_var A character string of the treatment variable name.
+#' @param treatment_levels A character vector of the treatment levels.
+#' @return A tibble of nuisance predictions.
+#' @keywords internal
+.get_nuisance_preds <- function(g_fit, q_fit, data, treatment_var, treatment_levels) {
+  g_preds <- predict(g_fit, new_data = data, type = "prob") |>
+    dplyr::rename_with(
+      ~ paste0("g_hat_", sub(".pred_", "", .x)),
+      .cols = dplyr::starts_with(".pred_")
+    )
+
+  q_hat_preds <-
+    purrr::map(
+      treatment_levels,
+      function(lvl) {
+        counterfactual_data <- data
+        counterfactual_data[[treatment_var]] <- factor(
+          lvl,
+          levels = treatment_levels
+        )
+        predict(q_fit, new_data = counterfactual_data) |>
+          dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
+      }
+    ) |>
+    purrr::list_cbind()
+
+  dplyr::bind_cols(g_preds, q_hat_preds)
+}
+
+#' Calculate the EIF for the Potential Outcome Mean (POM)
+#' @param data A data frame with outcome, treatment, and nuisance predictions.
+#' @param treatment_var A character string of the treatment variable name.
+#' @param outcome_var A character string of the outcome variable name.
+#' @param treatment_levels A character vector of the treatment levels.
+#' @return A tibble of observation-level EIF values.
+#' @keywords internal
+.calculate_eif_pom <- function(data, treatment_var, outcome_var, treatment_levels) {
+  Y <- data[[outcome_var]]
+  A <- data[[treatment_var]]
+
+  eif_list <-
+    purrr::map(
+      treatment_levels,
+      function(lvl) {
+        g_hat_lvl <- data[[paste0("g_hat_", lvl)]]
+        q_hat_lvl <- data[[paste0("q_hat_", lvl)]]
+        indicator <- as.numeric(A == lvl)
+
+        # Truncate propensities to avoid instability
+        g_hat_lvl[g_hat_lvl < 0.025] <- 0.025
+
+        eif_pom <- (indicator / g_hat_lvl) * (Y - q_hat_lvl) + q_hat_lvl
+        eif_pom
+      }
+    )
+
+  names(eif_list) <- paste0("eif_pom_", treatment_levels)
+  tibble::as_tibble(eif_list)
 }

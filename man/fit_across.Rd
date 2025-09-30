@@ -16,20 +16,7 @@ a propensity model and an outcome model.}
 treatment, outcome, and covariate variables.}
 }
 \value{
-A \code{fitted_causal_workflow} object. This object contains:
-\itemize{
-\item \code{propensity_model_fit}, \code{outcome_model_fit}: The final nuisance models
-fitted on the full dataset.
-\item \code{treatment_levels}: A character vector of the treatment levels.
-\item \code{estimates}: A tibble with the estimated potential outcome for each
-treatment level.
-\item \code{variances}: A tibble with the variance of the potential outcome
-estimator for each level.
-\item \code{eif_pom}: A tibble of the observation-level efficient influence function
-(EIF) values for the POM, with one column for each treatment level.
-\item \code{nuisance_predictions}: A tibble of the out-of-sample nuisance
-predictions from the cross-fitting procedure.
-}
+A \code{fitted_causal_workflow} object.
 }
 \description{
 \code{\link[=fit_across]{fit_across()}} for a \code{causal_workflow} object performs a cross-fitted estimation

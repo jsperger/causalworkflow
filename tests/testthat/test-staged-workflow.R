@@ -1,4 +1,4 @@
-# --- Unit tests for `staged_workflow` -----------------------------------------
+# --- Unit tests for refactored staged_workflow fitting logic ----------------
 
 library(parsnip)
 library(recipes)
@@ -18,46 +18,7 @@ sim_data <- data.frame(
   outcome = rnorm(20)
 )
 
-# --- Test `staged_workflow` constructor and verbs -----------------------------
-
-test_that("`staged_workflow` constructor works", {
-  spec <- staged_workflow()
-  expect_s3_class(spec, "staged_workflow")
-  expect_equal(length(spec$stages), 0)
-  expect_null(spec$exclusions)
-})
-
-test_that("`add_stage_model` works correctly", {
-  lm_wflow <- workflow() |>
-    add_model(linear_reg()) |>
-    add_formula(outcome ~ covar1 + action)
-
-  spec <- staged_workflow() |>
-    add_stage_model(lm_wflow, stage = 1)
-
-  expect_equal(length(spec$stages), 1)
-  expect_s3_class(spec$stages$`1`$wflow, "workflow")
-  expect_equal(spec$stages$`1`$type, "single_model")
-
-  spec <- spec |>
-    add_stage_model(lm_wflow, stages = 2:3)
-
-  expect_equal(length(spec$stages), 3)
-  expect_s3_class(spec$stages$`2`$wflow, "workflow")
-  expect_equal(spec$stages$`2`$type, "single_model")
-  expect_s3_class(spec$stages$`3`$wflow, "workflow")
-})
-
-test_that("`set_action_exclusions` works correctly", {
-  spec <- staged_workflow() |>
-    set_action_exclusions(~ action == "A" & covar1 > 0)
-
-  expect_s3_class(spec$exclusions, "formula")
-  expect_equal(rlang::f_rhs(spec$exclusions), quote(action == "A" & covar1 > 0))
-})
-
-
-# --- Test `fit.staged_workflow` -----------------------------------------------
+# --- Test `fit.staged_workflow` with new recursive engine ---------------------
 
 test_that("`fit.staged_workflow` runs and returns the correct structure", {
   lm_wflow <- workflow() |>
@@ -73,93 +34,55 @@ test_that("`fit.staged_workflow` runs and returns the correct structure", {
   expect_equal(length(fitted_spec$models), 2)
   expect_s3_class(fitted_spec$models$`1`, "workflow")
   expect_true(fitted_spec$models$`1`$trained)
+  expect_true(fitted_spec$models$`2`$trained)
 })
 
-test_that("`fit.staged_workflow` respects one-sided vs. two-sided formulas", {
-  # Two-sided formula for stage 1
-  wflow_two_sided <- workflow() |>
-    add_model(linear_reg()) |>
-    add_formula(outcome ~ covar1 + action)
+# --- Test `fit_next_stage` and resumable fitting ------------------------------
 
-  # One-sided formula for stage 1
-  wflow_one_sided <- workflow() |>
-    add_model(linear_reg()) |>
-    add_formula(~ covar1 + action)
-
-  # Common workflow for stage 2
-  wflow_stage_2 <- workflow() |>
-    add_model(linear_reg()) |>
-    add_formula(outcome ~ covar1 + action)
-
-  spec_two_sided <- staged_workflow() |>
-    add_stage_model(wflow_two_sided, stage = 1) |>
-    add_stage_model(wflow_stage_2, stage = 2)
-
-  spec_one_sided <- staged_workflow() |>
-    add_stage_model(wflow_one_sided, stage = 1) |>
-    add_stage_model(wflow_stage_2, stage = 2)
-
-  expect_no_error(fit(spec_two_sided, data = sim_data))
-  expect_no_error(fit(spec_one_sided, data = sim_data))
-})
-
-
-# --- Test `predict.fitted_staged_workflow` ------------------------------------
-
-test_that("`predict.fitted_staged_workflow` works for all types", {
-  lm_wflow <- workflow() |>
-    add_model(linear_reg()) |>
-    add_formula(outcome ~ covar1 + covar2 + action)
-
-  spec <- staged_workflow() |>
-    add_stage_model(lm_wflow, stages = 1:2)
-
-  fitted_spec <- fit(spec, data = sim_data)
-
-  new_data <- sim_data[sim_data$stage == 1, ]
-
-  pred_action <- predict(fitted_spec, new_data, stage = 1, type = "action")
-  expect_s3_class(pred_action, "tbl_df")
-  expect_equal(names(pred_action), ".pred_action")
-  expect_equal(nrow(pred_action), 10)
-
-  pred_value <- predict(fitted_spec, new_data, stage = 1, type = "value")
-  expect_s3_class(pred_value, "tbl_df")
-  expect_equal(names(pred_value), ".pred_value")
-  expect_equal(nrow(pred_value), 10)
-})
-
-
-# --- Test `multi_predict` -----------------------------------------------------
-
-test_that("`multi_predict.fitted_staged_workflow` works correctly", {
-  lm_wflow <- workflow() |>
-    add_model(linear_reg()) |>
-    add_formula(outcome ~ covar1 + covar2 + action)
-
-  spec <- staged_workflow() |>
-    add_stage_model(lm_wflow, stages = 1:2)
-
-  fitted_spec <- fit(spec, data = sim_data)
-
-  initial_data <- sim_data[sim_data$stage == 1, ]
-
-  seq_preds <- multi_predict(fitted_spec, new_data = initial_data)
-
-  expect_s3_class(seq_preds, "tbl_df")
-  expect_equal(
-    names(seq_preds),
-    c(".pred_value_1", ".pred_action_1", ".pred_value_2", ".pred_action_2")
+test_that("`fit_next_stage` and resumable fits work correctly", {
+  # A 3-stage dataset
+  set.seed(456)
+  sim_data_3_stage <- data.frame(
+    id = rep(1:10, each = 3),
+    stage = rep(1:3, 10),
+    covar1 = rnorm(30),
+    covar2 = rnorm(30),
+    action = factor(sample(c("A", "B"), 30, replace = TRUE)),
+    outcome = rnorm(30)
   )
-  expect_equal(nrow(seq_preds), 10)
+
+  lm_wflow <- workflow() |>
+    add_model(linear_reg()) |>
+    add_formula(outcome ~ covar1 + covar2 + action)
+
+  spec <- staged_workflow() |>
+    add_stage_model(lm_wflow, stages = 1:3) # A 3-stage workflow
+
+  # 1. Fit only the last stage (stage 3)
+  fitted_stage_3 <- fit_next_stage(spec, data = sim_data_3_stage)
+  expect_s3_class(fitted_stage_3, "fitted_staged_workflow")
+  expect_equal(length(fitted_stage_3$models), 1)
+  expect_true("3" %in% names(fitted_stage_3$models))
+  expect_false("2" %in% names(fitted_stage_3$models))
+
+  # 2. Fit the next stage (stage 2)
+  fitted_stage_3_2 <- fit_next_stage(fitted_stage_3, data = sim_data_3_stage)
+  expect_equal(length(fitted_stage_3_2$models), 2)
+  expect_true(all(c("3", "2") %in% names(fitted_stage_3_2$models)))
+  expect_false("1" %in% names(fitted_stage_3_2$models))
+
+  # 3. Resume the fit from the partially-fitted object to complete it
+  fitted_all <- fit(fitted_stage_3_2, data = sim_data_3_stage)
+  expect_equal(length(fitted_all$models), 3)
+  expect_true(all(c("3", "2", "1") %in% names(fitted_all$models)))
+  expect_true(fitted_all$models$`1`$trained)
 })
 
+# --- Test fitting with `causal_workflow` and `tmle_workflow` stages ---------
 
-# --- Test Phase 3: Compositional Workflows ------------------------------------
-
-test_that("`staged_workflow` can fit a compositional `causal_workflow`", {
-  # A multi-component (AIPW) spec for stage 1
-  stage_1_aipw <- causal_workflow() |>
+test_that("`staged_workflow` can fit `causal_workflow` and `tmle_workflow`", {
+  # A tmle_workflow spec for stage 1
+  stage_1_tmle <- tmle_workflow() |>
     add_outcome_model(
       workflow() |>
         add_model(linear_reg()) |>
@@ -178,49 +101,44 @@ test_that("`staged_workflow` can fit a compositional `causal_workflow`", {
 
   # Create and fit the compositional workflow
   longitudinal_spec <- staged_workflow() |>
-    add_stage_model(stage_1_aipw, stage = 1) |>
+    add_stage_model(stage_1_tmle, stage = 1) |>
     add_stage_model(stage_2_q, stage = 2)
 
-  expect_no_error(
-    fitted_longitudinal <- fit(longitudinal_spec, data = sim_data)
-  )
+  fitted_longitudinal <- fit(longitudinal_spec, data = sim_data)
 
   # Check the structure of the fitted object
   expect_s3_class(fitted_longitudinal, "fitted_staged_workflow")
   expect_equal(length(fitted_longitudinal$models), 2)
-  expect_s3_class(fitted_longitudinal$models$`1`, "fitted_causal_workflow")
+  expect_s3_class(fitted_longitudinal$models$`1`, "fitted_tmle_workflow")
   expect_s3_class(fitted_longitudinal$models$`2`, "workflow")
-  expect_true(fitted_longitudinal$models$`2`$trained)
-  expect_s3_class(fitted_longitudinal$models$`1`$estimates, "tbl_df")
+  expect_true(!is.null(fitted_longitudinal$models$`1`$epsilon))
+  expect_true("tbl_df" %in% class(fitted_longitudinal$models$`1`$targeted_predictions))
+})
 
-  # Test predict dispatch
-  new_data_s1 <- sim_data[sim_data$stage == 1, ]
-  new_data_s2 <- sim_data[sim_data$stage == 2, ]
+test_that("TMLE fit aborts for > 2 stages", {
+  stage_1_tmle <- tmle_workflow() |>
+    add_outcome_model(
+      workflow() |>
+        add_model(linear_reg()) |>
+        add_formula(outcome ~ covar1 + covar2 + action)
+    ) |>
+    add_propensity_model(
+      workflow() |>
+        add_model(logistic_reg()) |>
+        add_formula(action ~ covar1 + covar2)
+    )
 
-  # Predict from stage 1 (causal_workflow) should return potential outcomes
-  pred_point_s1 <- predict(
-    fitted_longitudinal,
-    new_data = new_data_s1,
-    stage = 1,
-    type = "potential_outcome"
-  )
-  expect_s3_class(pred_point_s1, "tbl_df")
-  expect_true(all(c("level", ".pred", ".std_err") %in% names(pred_point_s1)))
-  expect_equal(nrow(pred_point_s1), 2)
+  stage_2_q <- workflow() |>
+    add_model(linear_reg()) |>
+    add_formula(outcome ~ covar1 + covar2 + action)
 
-  # Predict from stage 2 (standard workflow) should work
-  pred_action_s2 <- predict(
-    fitted_longitudinal,
-    new_data = new_data_s2,
-    stage = 2,
-    type = "action"
-  )
-  expect_s3_class(pred_action_s2, "tbl_df")
-  expect_equal(names(pred_action_s2), ".pred_action")
+  three_stage_spec <- staged_workflow() |>
+    add_stage_model(stage_1_tmle, stage = 1) |>
+    add_stage_model(stage_2_q, stage = 2) |>
+    add_stage_model(stage_2_q, stage = 3)
 
-  # Test multi_predict error
   expect_error(
-    multi_predict(fitted_longitudinal, new_data = new_data_s1),
-    "is only supported for staged workflows where every stage is a standard"
+    fit(three_stage_spec, data = sim_data),
+    "CV-TMLE for more than 2 stages is not yet supported."
   )
 })

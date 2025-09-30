@@ -4,44 +4,34 @@
 \alias{fit.staged_workflow}
 \title{Fit a \code{staged_workflow}}
 \usage{
-\method{fit}{staged_workflow}(object, data, ..., discount = 1)
+\method{fit}{staged_workflow}(object, data, ..., discount = 1, control = control_fit())
 }
 \arguments{
 \item{object}{A \code{\link[=staged_workflow]{staged_workflow()}} object.}
 
-\item{data}{A data frame containing all necessary variables for all stages.
-It must include columns for \code{stage}, \code{action}, and \code{outcome}.}
+\item{data}{A data frame containing all necessary variables for all stages.}
 
 \item{...}{Not used.}
 
 \item{discount}{A numeric value between 0 and 1 for discounting future
 outcomes. Defaults to 1 (no discounting).}
+
+\item{control}{A \code{control_fit} object to manage the fitting process.}
 }
 \value{
 A \code{fitted_staged_workflow} object containing the ordered list of all
 fitted stage models.
 }
 \description{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
+
 This function fits the sequence of models defined in a \code{\link[=staged_workflow]{staged_workflow()}}
-object using a backwards recursive algorithm.
+object using a backwards recursive algorithm. It serves as a wrapper around
+the core \code{fit_recursive()} engine.
 }
 \details{
 The fitting process proceeds in reverse order of the stages (\code{K} down to \code{1}).
-\itemize{
-\item For the final stage (\code{K}), the model is fit using the observed \code{outcome}.
-\item For any preceding stage \code{k < K}, the model is fit to a "pseudo-outcome"
-calculated from the predictions of the model at stage \code{k+1}.
-}
-
-The calculation of the pseudo-outcome depends on the formula specified in the
-workflow for stage \code{k}:
-\itemize{
-\item \strong{Two-sided formula (\code{outcome ~ ...})}: The pseudo-outcome is
-\code{data$outcome + discount * max_q_k_plus_1}.
-\item \strong{One-sided formula (\code{~ ...})}: The pseudo-outcome is
-\code{discount * max_q_k_plus_1}.
-}
-
-where \code{max_q_k_plus_1} is the maximum predicted value from the stage \code{k+1}
-model over all possible actions.
+For any stage \code{k < K}, the model is fit to a "pseudo-outcome" calculated from
+the predictions of the model at stage \code{k+1}. See \code{\link[=fit_recursive]{fit_recursive()}} for more
+details on the underlying mechanism.
 }

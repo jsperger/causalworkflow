@@ -10,26 +10,14 @@
 \item{object}{A \code{causal_workflow} object that has been configured with
 a propensity model and an outcome model.}
 
-\item{data}{A data frame containing the training data, including the
-treatment, outcome, and covariate variables.}
+\item{data}{A data frame containing the training data. When used inside
+\code{\link[=fit.staged_workflow]{fit.staged_workflow()}}, the response variable is expected to be in a
+column named \code{outcome}.}
 
 \item{...}{Not used.}
 }
 \value{
-A \code{fitted_causal_workflow} object. This object contains:
-\itemize{
-\item \code{propensity_model_fit}, \code{outcome_model_fit}: The nuisance models
-fitted on the full dataset.
-\item \code{treatment_levels}: A character vector of the treatment levels.
-\item \code{estimates}: A tibble with the estimated potential outcome for each
-treatment level.
-\item \code{variances}: A tibble with the variance of the potential outcome
-estimator for each level.
-\item \code{eif_pom}: A tibble of the observation-level efficient influence function
-(EIF) values for the POM, with one column for each treatment level.
-\item \code{nuisance_predictions}: A tibble of the in-sample nuisance
-predictions.
-}
+A \code{fitted_causal_workflow} object.
 }
 \description{
 \code{fit} for a \code{causal_workflow} object performs a straightforward,
@@ -45,10 +33,9 @@ lead to biased estimates. In those cases, it is strongly recommended to use
 \code{\link[=fit_across]{fit_across()}} for cross-fitted estimation or \code{\link[=tune_nested]{tune_nested()}} for
 estimation with hyperparameter tuning.
 
-The method calculates the EIF for the Potential Outcome Mean (POM) for each
-treatment level. The POM is the average outcome that would be observed if all
-individuals in the population received a specific treatment.
+When called within \code{fit.staged_workflow()}, this function will be fitted
+using a pseudo-outcome.
 }
 \seealso{
-\code{\link[=fit_across]{fit_across()}}, \code{\link[=tune_nested]{tune_nested()}}
+\code{\link[=fit_across]{fit_across()}}, \code{\link[=tune_nested]{tune_nested()}}, \code{\link[=fit.staged_workflow]{fit.staged_workflow()}}
 }

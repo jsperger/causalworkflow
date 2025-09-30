@@ -88,6 +88,20 @@ check_causal_workflow <- function(x, call = rlang::caller_env()) {
   }
 }
 
+#' @importFrom hardhat extract_preprocessor
+#' @export
+hardhat::extract_preprocessor
+
+#' @export
+extract_preprocessor.causal_workflow <- function(x, ...) {
+  # The relevant preprocessor for a causal_workflow in the context of staged
+  # fitting is the one from the outcome model, as it defines the response.
+  if (is.null(x$outcome_model)) {
+    cli::cli_abort("The causal workflow has no outcome model.")
+  }
+  hardhat::extract_preprocessor(x$outcome_model)
+}
+
 check_spec <- function(spec, call = rlang::caller_env()) {
   is_wflow <- inherits(spec, "workflow")
   is_wflow_set <- inherits(spec, "workflow_set")
