@@ -36,7 +36,16 @@
 #'
 #' @return A `cv_tmle_fit` object.
 #' @export
-cv_tmle <- function(data, resamples, stages, actions, outcome, inner_v = 5, lower_bound = 0.025, ...) {
+cv_tmle <- function(
+  data,
+  resamples,
+  stages,
+  actions,
+  outcome,
+  inner_v = 5,
+  lower_bound = 0.025,
+  ...
+) {
   # 1. Iterate over each fold to get targeted predictions and IC components
   fold_results <- purrr::map_dfr(
     resamples$splits,
@@ -54,7 +63,8 @@ cv_tmle <- function(data, resamples, stages, actions, outcome, inner_v = 5, lowe
 
   # 2. Calculate final estimate and inference from pooled results
   V_hat_cvtmle <- mean(fold_results$Q1_star_max, na.rm = TRUE)
-  ic_full <- (fold_results$D2 + fold_results$D1 + fold_results$D0) - V_hat_cvtmle
+  ic_full <- (fold_results$D2 + fold_results$D1 + fold_results$D0) -
+    V_hat_cvtmle
   n_obs <- nrow(fold_results)
   var_hat <- stats::var(ic_full, na.rm = TRUE) / n_obs
   se_hat <- sqrt(var_hat)
@@ -73,19 +83,49 @@ cv_tmle <- function(data, resamples, stages, actions, outcome, inner_v = 5, lowe
 
 # --- Internal Helper Functions ---
 
-.process_one_fold <- function(split, stages, actions, outcome, inner_v, lower_bound, ...) {
+.process_one_fold <- function(
+  split,
+  stages,
+  actions,
+  outcome,
+  inner_v,
+  lower_bound,
+  ...
+) {
   analysis_data <- rsample::analysis(split)
   assessment_data <- rsample::assessment(split)
   inner_resamples <- rsample::vfold_cv(analysis_data, v = inner_v)
 
-  preds_init <- .fit_predict_nuisance_models(analysis_data, assessment_data, stages, actions, inner_resamples)
-  data_for_targeting <- dplyr::left_join(assessment_data, preds_init, by = ".row", multiple = "all")
+  preds_init <- .fit_predict_nuisance_models(
+    analysis_data,
+    assessment_data,
+    stages,
+    actions,
+    inner_resamples
+  )
+  data_for_targeting <- dplyr::left_join(
+    assessment_data,
+    preds_init,
+    by = ".row",
+    multiple = "all"
+  )
 
-  targeted_results <- .target_nuisance_estimates(data_for_targeting, actions, outcome, lower_bound)
+  targeted_results <- .target_nuisance_estimates(
+    data_for_targeting,
+    actions,
+    outcome,
+    lower_bound
+  )
   .calculate_ic(targeted_results, actions, outcome)
 }
 
-.fit_predict_nuisance_models <- function(analysis_data, assessment_data, stages, actions, inner_resamples) {
+.fit_predict_nuisance_models <- function(
+  analysis_data,
+  assessment_data,
+  stages,
+  actions,
+  inner_resamples
+) {
   q_spec_2 <- stages$`2`$outcome_model
   g_spec_2 <- stages$`2`$propensity_model
   q_spec_1 <- stages$`1`$outcome_model
@@ -95,55 +135,117 @@ cv_tmle <- function(data, resamples, stages, actions, outcome, inner_v = 5, lowe
   g_fit_2 <- .fit_nuisance_spec(g_spec_2, inner_resamples, analysis_data)
 
   action_2_levels <- levels(analysis_data[[actions[2]]])
-  q2_preds_train <- purrr::map(action_2_levels, ~ predict(q_fit_2, new_data = dplyr::mutate(analysis_data, !!actions[2] := factor(.x, levels = action_2_levels)))) |>
+  q2_preds_train <- purrr::map(
+    action_2_levels,
+    ~ predict(
+      q_fit_2,
+      new_data = dplyr::mutate(
+        analysis_data,
+        !!actions[2] := factor(.x, levels = action_2_levels)
+      )
+    )
+  ) |>
     dplyr::bind_cols() |>
     as.matrix()
   pseudo_outcome_1 <- apply(q2_preds_train, 1, max, na.rm = TRUE)
-  analysis_data_stage1 <- dplyr::mutate(analysis_data, .pseudo_outcome = pseudo_outcome_1)
+  analysis_data_stage1 <- dplyr::mutate(
+    analysis_data,
+    .pseudo_outcome = pseudo_outcome_1
+  )
 
   q1_wflow <- .update_q_workflow(q_spec_1)
   q_fit_1 <- .fit_nuisance_spec(q1_wflow, inner_resamples, analysis_data_stage1)
   g_fit_1 <- .fit_nuisance_spec(g_spec_1, inner_resamples, analysis_data)
 
   action_1_levels <- levels(assessment_data[[actions[1]]])
-  q2_preds_assess <- purrr::map_dfc(action_2_levels, ~ predict(q_fit_2, new_data = dplyr::mutate(assessment_data, !!actions[2] := factor(.x, levels = action_2_levels))))
-  q1_preds_assess <- purrr::map_dfc(action_1_levels, ~ predict(q_fit_1, new_data = dplyr::mutate(assessment_data, !!actions[1] := factor(.x, levels = action_1_levels))))
+  q2_preds_assess <- purrr::map_dfc(
+    action_2_levels,
+    ~ predict(
+      q_fit_2,
+      new_data = dplyr::mutate(
+        assessment_data,
+        !!actions[2] := factor(.x, levels = action_2_levels)
+      )
+    )
+  )
+  q1_preds_assess <- purrr::map_dfc(
+    action_1_levels,
+    ~ predict(
+      q_fit_1,
+      new_data = dplyr::mutate(
+        assessment_data,
+        !!actions[1] := factor(.x, levels = action_1_levels)
+      )
+    )
+  )
   g1_preds_assess <- predict(g_fit_1, new_data = assessment_data, type = "prob")
   g2_preds_assess <- predict(g_fit_2, new_data = assessment_data, type = "prob")
 
   names(q2_preds_assess) <- paste0("q2_hat_", action_2_levels)
   names(q1_preds_assess) <- paste0("q1_hat_", action_1_levels)
-  g1_preds_assess <- dplyr::rename_with(g1_preds_assess, ~ paste0("g1_hat_", sub(".pred_", "", .x)))
-  g2_preds_assess <- dplyr::rename_with(g2_preds_assess, ~ paste0("g2_hat_", sub(".pred_", "", .x)))
+  g1_preds_assess <- dplyr::rename_with(
+    g1_preds_assess,
+    ~ paste0("g1_hat_", sub(".pred_", "", .x))
+  )
+  g2_preds_assess <- dplyr::rename_with(
+    g2_preds_assess,
+    ~ paste0("g2_hat_", sub(".pred_", "", .x))
+  )
 
   tibble::tibble(.row = assessment_data$.row) |>
-    dplyr::bind_cols(q1_preds_assess, q2_preds_assess, g1_preds_assess, g2_preds_assess)
+    dplyr::bind_cols(
+      q1_preds_assess,
+      q2_preds_assess,
+      g1_preds_assess,
+      g2_preds_assess
+    )
 }
 
 .target_nuisance_estimates <- function(data, actions, outcome, lower_bound) {
   q1_hat_cols <- dplyr::select(data, dplyr::starts_with("q1_hat_"))
   q2_hat_cols <- dplyr::select(data, dplyr::starts_with("q2_hat_"))
-  pi_hat_1 <- colnames(q1_hat_cols)[apply(q1_hat_cols, 1, which.max)] |> sub("q1_hat_", "", x = _)
-  pi_hat_2 <- colnames(q2_hat_cols)[apply(q2_hat_cols, 1, which.max)] |> sub("q2_hat_", "", x = _)
+  pi_hat_1 <- colnames(q1_hat_cols)[apply(q1_hat_cols, 1, which.max)] |>
+    sub("q1_hat_", "", x = _)
+  pi_hat_2 <- colnames(q2_hat_cols)[apply(q2_hat_cols, 1, which.max)] |>
+    sub("q2_hat_", "", x = _)
   data <- dplyr::mutate(data, pi_hat_1 = pi_hat_1, pi_hat_2 = pi_hat_2)
 
-  g1_hat_observed <- .get_observed_prob(data, "g1_hat", actions[1]) |> pmax(lower_bound)
-  g2_hat_observed <- .get_observed_prob(data, "g2_hat", actions[2]) |> pmax(lower_bound)
+  g1_hat_observed <- .get_observed_prob(data, "g1_hat", actions[1]) |>
+    pmax(lower_bound)
+  g2_hat_observed <- .get_observed_prob(data, "g2_hat", actions[2]) |>
+    pmax(lower_bound)
   C1 <- as.numeric(data[[actions[1]]] == data$pi_hat_1) / g1_hat_observed
   C2 <- C1 * (as.numeric(data[[actions[2]]] == data$pi_hat_2) / g2_hat_observed)
 
-  data <- dplyr::mutate(data, C1 = C1, C2 = C2,
-                        q2_hat_observed = .get_observed_prob(data, "q2_hat", actions[2]),
-                        q1_hat_observed = .get_observed_prob(data, "q1_hat", actions[1]))
+  data <- dplyr::mutate(
+    data,
+    C1 = C1,
+    C2 = C2,
+    q2_hat_observed = .get_observed_prob(data, "q2_hat", actions[2]),
+    q1_hat_observed = .get_observed_prob(data, "q1_hat", actions[1])
+  )
 
-  epsilon_2 <- stats::coef(stats::glm(as.formula(paste(outcome, "~ -1 + offset(q2_hat_observed) + C2")), data = data, family = "gaussian"))
+  epsilon_2 <- stats::coef(stats::glm(
+    as.formula(paste(outcome, "~ -1 + offset(q2_hat_observed) + C2")),
+    data = data,
+    family = "gaussian"
+  ))
   q2_star_cols <- q2_hat_cols + (epsilon_2 * data$C2)
   colnames(q2_star_cols) <- sub("q2_hat", "q2_star", colnames(q2_hat_cols))
 
   data_q1_fluct <- dplyr::bind_cols(data, q2_star_cols)
-  data_q1_fluct$pseudo_outcome_1_targeted <- apply(dplyr::select(data_q1_fluct, dplyr::starts_with("q2_star_")), 1, max, na.rm = TRUE)
+  data_q1_fluct$pseudo_outcome_1_targeted <- apply(
+    dplyr::select(data_q1_fluct, dplyr::starts_with("q2_star_")),
+    1,
+    max,
+    na.rm = TRUE
+  )
 
-  epsilon_1 <- stats::coef(stats::glm(pseudo_outcome_1_targeted ~ -1 + offset(q1_hat_observed) + C1, data = data_q1_fluct, family = "gaussian"))
+  epsilon_1 <- stats::coef(stats::glm(
+    pseudo_outcome_1_targeted ~ -1 + offset(q1_hat_observed) + C1,
+    data = data_q1_fluct,
+    family = "gaussian"
+  ))
   q1_star_cols <- q1_hat_cols + (epsilon_1 * data$C1)
   colnames(q1_star_cols) <- sub("q1_hat", "q1_star", colnames(q1_hat_cols))
 
@@ -153,8 +255,18 @@ cv_tmle <- function(data, resamples, stages, actions, outcome, inner_v = 5, lowe
 .calculate_ic <- function(data, actions, outcome) {
   q2_star_observed <- .get_observed_prob(data, "q2_star", actions[2])
   q1_star_observed <- .get_observed_prob(data, "q1_star", actions[1])
-  q2_star_max <- apply(dplyr::select(data, dplyr::starts_with("q2_star_")), 1, max, na.rm = TRUE)
-  q1_star_max <- apply(dplyr::select(data, dplyr::starts_with("q1_star_")), 1, max, na.rm = TRUE)
+  q2_star_max <- apply(
+    dplyr::select(data, dplyr::starts_with("q2_star_")),
+    1,
+    max,
+    na.rm = TRUE
+  )
+  q1_star_max <- apply(
+    dplyr::select(data, dplyr::starts_with("q1_star_")),
+    1,
+    max,
+    na.rm = TRUE
+  )
 
   D2 <- data$C2 * (data[[outcome]] - q2_star_observed)
   D1 <- data$C1 * (q2_star_max - q1_star_observed)
@@ -166,17 +278,26 @@ cv_tmle <- function(data, resamples, stages, actions, outcome, inner_v = 5, lowe
 .get_observed_prob <- function(data, model_prefix, action_col) {
   pred_cols <- dplyr::select(data, dplyr::starts_with(model_prefix))
   action_levels <- sub(paste0(model_prefix, "_"), "", colnames(pred_cols))
-  as.matrix(pred_cols)[cbind(seq_len(nrow(data)), match(data[[action_col]], action_levels))]
+  as.matrix(pred_cols)[cbind(
+    seq_len(nrow(data)),
+    match(data[[action_col]], action_levels)
+  )]
 }
 
 .update_q_workflow <- function(spec) {
   if (inherits(spec, "workflow")) {
     orig_formula <- hardhat::extract_preprocessor(spec)
-    new_formula <- rlang::new_formula(rlang::sym(".pseudo_outcome"), rlang::f_rhs(orig_formula))
+    new_formula <- rlang::new_formula(
+      rlang::sym(".pseudo_outcome"),
+      rlang::f_rhs(orig_formula)
+    )
     return(workflows::update_formula(spec, new_formula))
   } else if (inherits(spec, "workflow_set")) {
     spec$preproc <- purrr::map(spec$preproc, function(preproc_formula) {
-      rlang::new_formula(rlang::sym(".pseudo_outcome"), rlang::f_rhs(preproc_formula))
+      rlang::new_formula(
+        rlang::sym(".pseudo_outcome"),
+        rlang::f_rhs(preproc_formula)
+      )
     })
     return(spec)
   }
@@ -188,12 +309,20 @@ cv_tmle <- function(data, resamples, stages, actions, outcome, inner_v = 5, lowe
     if (nrow(tune::tunable(spec)) > 0) {
       tuned <- tune::tune_grid(spec, resamples = resamples, grid = 10)
       best_params <- tune::select_best(tuned)
-      return(tune::finalize_workflow(spec, best_params) |> parsnip::fit(data = training_data))
+      return(
+        tune::finalize_workflow(spec, best_params) |>
+          parsnip::fit(data = training_data)
+      )
     } else {
       return(parsnip::fit(spec, data = training_data))
     }
   } else if (inherits(spec, "workflow_set")) {
-    wf_set_trained <- workflowsets::workflow_map("tune_grid", spec, resamples = resamples, control = stacks::control_stack_grid())
+    wf_set_trained <- workflowsets::workflow_map(
+      "tune_grid",
+      spec,
+      resamples = resamples,
+      control = stacks::control_stack_grid()
+    )
     return(
       stacks::stacks() |>
         stacks::add_candidates(wf_set_trained) |>
@@ -201,5 +330,7 @@ cv_tmle <- function(data, resamples, stages, actions, outcome, inner_v = 5, lowe
         stacks::fit_members()
     )
   }
-  rlang::abort("Unsupported specification in .fit_nuisance_spec. Must be a `workflow` or `workflow_set`.")
+  rlang::abort(
+    "Unsupported specification in .fit_nuisance_spec. Must be a `workflow` or `workflow_set`."
+  )
 }

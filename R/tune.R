@@ -62,7 +62,9 @@ tune_grid.causal_workflow <- function(object, resamples, grid, ...) {
 
 .check_tune_inputs <- function(object) {
   if (is.null(object$propensity_model) && is.null(object$outcome_model)) {
-    rlang::abort("The causal workflow must have at least one component model to tune.")
+    rlang::abort(
+      "The causal workflow must have at least one component model to tune."
+    )
   }
 }
 

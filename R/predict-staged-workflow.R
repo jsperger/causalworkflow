@@ -25,11 +25,7 @@
 #' `.pred_action`. For `type = "value"`, the column is `.pred_value`.
 #' @export
 predict.fitted_staged_workflow <-
-  function(object,
-           new_data,
-           stage,
-           type = "action",
-           ...) {
+  function(object, new_data, stage, type = "action", ...) {
     checkmate::assert_class(object, "fitted_staged_workflow")
     checkmate::assert_data_frame(new_data)
     checkmate::assert_int(stage, lower = 1)
@@ -65,7 +61,9 @@ predict.fitted_staged_workflow <-
       if (type == "action") {
         max_indices <- apply(pred_matrix, 1, which.max)
         best_actions <- actions[max_indices]
-        return(tibble::tibble(.pred_action = factor(best_actions, levels = actions)))
+        return(tibble::tibble(
+          .pred_action = factor(best_actions, levels = actions)
+        ))
       }
     }
   }
@@ -98,7 +96,10 @@ multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
 
   # Check if any stage has a multi-component model, which is not supported
   # for sequential action prediction.
-  has_causal_model <- purrr::some(object$models, ~ inherits(.x, "fitted_causal_workflow"))
+  has_causal_model <- purrr::some(
+    object$models,
+    ~ inherits(.x, "fitted_causal_workflow")
+  )
   if (has_causal_model) {
     stop(
       "`multi_predict()` is only supported for staged workflows where every ",
@@ -130,7 +131,10 @@ multi_predict.fitted_staged_workflow <- function(object, new_data, ...) {
 
     # Store results
     results[[paste0(".pred_value_", k)]] <- max_values
-    results[[paste0(".pred_action_", k)]] <- factor(best_actions, levels = actions)
+    results[[paste0(".pred_action_", k)]] <- factor(
+      best_actions,
+      levels = actions
+    )
 
     # Update data for the next stage
     current_data$action <- factor(best_actions, levels = actions)

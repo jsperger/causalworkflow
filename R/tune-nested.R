@@ -55,12 +55,13 @@ tune_nested <- function(object, ...) {
 
 #' @export
 tune_nested.causal_workflow <- function(
-    object,
-    resamples,
-    treatment_var,
-    outcome_var,
-    inner_v = 5,
-    ...) {
+  object,
+  resamples,
+  treatment_var,
+  outcome_var,
+  inner_v = 5,
+  ...
+) {
   # 1. Validate inputs
   .check_fit_inputs(object, resamples)
   tune::check_rset(resamples)
@@ -120,7 +121,8 @@ tune_nested.causal_workflow <- function(
 
   # 6. Calculate potential outcome estimates and their variance
   potential_outcomes <- colMeans(eif_tibble, na.rm = TRUE)
-  variance_estimates <- apply(eif_tibble, 2, stats::var, na.rm = TRUE) / colSums(!is.na(eif_tibble))
+  variance_estimates <- apply(eif_tibble, 2, stats::var, na.rm = TRUE) /
+    colSums(!is.na(eif_tibble))
 
   # 7. Fit final models on full data (using the tuned/ensembled spec)
   # This part is complex: for now, we return NULL for the final fits,
@@ -130,10 +132,18 @@ tune_nested.causal_workflow <- function(
   final_q_fit <- NULL
 
   # 8. Construct return object
-  estimates_tbl <- tibble::enframe(potential_outcomes, name = "level", value = ".pred") |>
+  estimates_tbl <- tibble::enframe(
+    potential_outcomes,
+    name = "level",
+    value = ".pred"
+  ) |>
     dplyr::mutate(level = sub("eif_pom_", "", level))
 
-  variances_tbl <- tibble::enframe(variance_estimates, name = "level", value = ".variance") |>
+  variances_tbl <- tibble::enframe(
+    variance_estimates,
+    name = "level",
+    value = ".variance"
+  ) |>
     dplyr::mutate(level = sub("eif_pom_", "", level))
 
   fitted_obj <-
@@ -155,12 +165,13 @@ tune_nested.causal_workflow <- function(
 
 # Helper for one outer fold of nested resampling
 .fit_predict_one_nested_fold <- function(
-    split,
-    pscore_spec,
-    outcome_spec,
-    inner_v,
-    treatment_var,
-    treatment_levels) {
+  split,
+  pscore_spec,
+  outcome_spec,
+  inner_v,
+  treatment_var,
+  treatment_levels
+) {
   analysis_data <- rsample::analysis(split)
   assessment_data <- rsample::assessment(split)
 
@@ -173,14 +184,20 @@ tune_nested.causal_workflow <- function(
 
   # Generate predictions on the assessment set
   g_preds <- predict(g_fit, new_data = assessment_data, type = "prob") |>
-    dplyr::rename_with(~ paste0("g_hat_", sub(".pred_", "", .x)), .cols = dplyr::starts_with(".pred_"))
+    dplyr::rename_with(
+      ~ paste0("g_hat_", sub(".pred_", "", .x)),
+      .cols = dplyr::starts_with(".pred_")
+    )
 
   q_hat_preds <-
     purrr::map(
       treatment_levels,
       function(lvl) {
         counterfactual_data <- assessment_data
-        counterfactual_data[[treatment_var]] <- factor(lvl, levels = treatment_levels)
+        counterfactual_data[[treatment_var]] <- factor(
+          lvl,
+          levels = treatment_levels
+        )
         predict(q_fit, new_data = counterfactual_data) |>
           dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
       }

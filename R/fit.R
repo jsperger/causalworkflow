@@ -85,7 +85,10 @@ fit.causal_workflow <- function(object, data, ...) {
       treatment_levels,
       function(lvl) {
         counterfactual_data <- data
-        counterfactual_data[[treatment_var]] <- factor(lvl, levels = treatment_levels)
+        counterfactual_data[[treatment_var]] <- factor(
+          lvl,
+          levels = treatment_levels
+        )
         predict(q_fit, new_data = counterfactual_data) |>
           dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
       }
@@ -116,13 +119,22 @@ fit.causal_workflow <- function(object, data, ...) {
 
   # 6. Calculate potential outcome estimates and their variance
   potential_outcomes <- colMeans(eif_tibble, na.rm = TRUE)
-  variance_estimates <- apply(eif_tibble, 2, stats::var, na.rm = TRUE) / nrow(eif_tibble)
+  variance_estimates <- apply(eif_tibble, 2, stats::var, na.rm = TRUE) /
+    nrow(eif_tibble)
 
   # 7. Construct return object
-  estimates_tbl <- tibble::enframe(potential_outcomes, name = "level", value = ".pred") |>
+  estimates_tbl <- tibble::enframe(
+    potential_outcomes,
+    name = "level",
+    value = ".pred"
+  ) |>
     dplyr::mutate(level = sub("eif_pom_", "", level))
 
-  variances_tbl <- tibble::enframe(variance_estimates, name = "level", value = ".variance") |>
+  variances_tbl <- tibble::enframe(
+    variance_estimates,
+    name = "level",
+    value = ".variance"
+  ) |>
     dplyr::mutate(level = sub("eif_pom_", "", level))
 
   fitted_obj <-

@@ -120,17 +120,26 @@ fit_across.causal_workflow <- function(object, data, ...) {
 
   # 7. Calculate potential outcome estimates and their variance
   potential_outcomes <- colMeans(eif_tibble, na.rm = TRUE)
-  variance_estimates <- apply(eif_tibble, 2, stats::var, na.rm = TRUE) / colSums(!is.na(eif_tibble))
+  variance_estimates <- apply(eif_tibble, 2, stats::var, na.rm = TRUE) /
+    colSums(!is.na(eif_tibble))
 
   # 8. Fit final models on full data
   final_g_fit <- parsnip::fit(pscore_wflow, data = data)
   final_q_fit <- parsnip::fit(outcome_wflow, data = data)
 
   # 9. Construct return object
-  estimates_tbl <- tibble::enframe(potential_outcomes, name = "level", value = ".pred") |>
+  estimates_tbl <- tibble::enframe(
+    potential_outcomes,
+    name = "level",
+    value = ".pred"
+  ) |>
     dplyr::mutate(level = sub("eif_pom_", "", level))
 
-  variances_tbl <- tibble::enframe(variance_estimates, name = "level", value = ".variance") |>
+  variances_tbl <- tibble::enframe(
+    variance_estimates,
+    name = "level",
+    value = ".variance"
+  ) |>
     dplyr::mutate(level = sub("eif_pom_", "", level))
 
   fitted_obj <-
@@ -151,7 +160,13 @@ fit_across.causal_workflow <- function(object, data, ...) {
 }
 
 # Helper function to process one fold of the cross-fitting procedure
-.fit_predict_one_fold <- function(split, pscore_wflow, outcome_wflow, treatment_var, treatment_levels) {
+.fit_predict_one_fold <- function(
+  split,
+  pscore_wflow,
+  outcome_wflow,
+  treatment_var,
+  treatment_levels
+) {
   analysis_data <- rsample::analysis(split)
   assessment_data <- rsample::assessment(split)
 
@@ -160,7 +175,10 @@ fit_across.causal_workflow <- function(object, data, ...) {
 
   # Get propensity scores for the assessment set and rename them
   g_preds <- predict(g_fit, new_data = assessment_data, type = "prob") |>
-    dplyr::rename_with(~ paste0("g_hat_", sub(".pred_", "", .x)), .cols = dplyr::starts_with(".pred_"))
+    dplyr::rename_with(
+      ~ paste0("g_hat_", sub(".pred_", "", .x)),
+      .cols = dplyr::starts_with(".pred_")
+    )
 
   # Get potential outcome predictions for each treatment level
   q_hat_preds <-
@@ -168,7 +186,10 @@ fit_across.causal_workflow <- function(object, data, ...) {
       treatment_levels,
       function(lvl) {
         counterfactual_data <- assessment_data
-        counterfactual_data[[treatment_var]] <- factor(lvl, levels = treatment_levels)
+        counterfactual_data[[treatment_var]] <- factor(
+          lvl,
+          levels = treatment_levels
+        )
         predict(q_fit, new_data = counterfactual_data) |>
           dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
       }

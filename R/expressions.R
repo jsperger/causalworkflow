@@ -189,7 +189,7 @@ multi_net_helper <- function(data, ...) {
 stack_predict.multnet_class <- function(x, data, ...) {
   lvls <- attr(x, "levels")
   res <- multi_net_engine(x, data)
-  res <- 
+  res <-
     res |>
     dplyr::mutate(
       .pred_class = gsub(".pred_", "", colnames(res)[idx]),

@@ -22,7 +22,11 @@ causal_workflow_constr <- function(causal_workflow) {
     is_wflow_set <- inherits(spec, "workflow_set")
     if (!is_wflow && !is_wflow_set) {
       rlang::abort(
-        paste0("`", component_name, "` must be a `workflow` or `workflow_set` object.")
+        paste0(
+          "`",
+          component_name,
+          "` must be a `workflow` or `workflow_set` object."
+        )
       )
     }
   }

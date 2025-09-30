@@ -44,10 +44,11 @@ tune::fit_resamples
 #' @seealso `fit.causal_workflow()`, `fit_across()`
 #' @export
 fit_resamples.causal_workflow <- function(
-    object,
-    resamples,
-    metrics = NULL,
-    control = tune::control_resamples()) {
+  object,
+  resamples,
+  metrics = NULL,
+  control = tune::control_resamples()
+) {
   # 1. Validate inputs
   .check_fit_inputs(object, resamples)
   tune::check_rset(resamples)
@@ -78,5 +79,11 @@ fit_resamples.causal_workflow <- function(
   # A more complete implementation would return a modified resamples object.
   # This provides the core diagnostic information.
   dplyr::bind_rows(pscore_metrics, outcome_metrics) |>
-    dplyr::select(.nuisance_component, .metric, .estimator, mean, dplyr::everything())
+    dplyr::select(
+      .nuisance_component,
+      .metric,
+      .estimator,
+      mean,
+      dplyr::everything()
+    )
 }

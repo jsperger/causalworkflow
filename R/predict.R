@@ -22,12 +22,23 @@
 #' @return A tibble with the requested prediction type.
 #'
 #' @export
-predict.fitted_causal_workflow <- function(object, new_data = NULL, type = "potential_outcome", ...) {
+predict.fitted_causal_workflow <- function(
+  object,
+  new_data = NULL,
+  type = "potential_outcome",
+  ...
+) {
   # Capture additional arguments
   dots <- list(...)
 
   # Argument matching for type
-  valid_types <- c("potential_outcome", "if", "components", "blip_ref", "blip_avg")
+  valid_types <- c(
+    "potential_outcome",
+    "if",
+    "components",
+    "blip_ref",
+    "blip_avg"
+  )
   type <- rlang::arg_match(type, valid_types)
 
   # Use eif_pom as the influence function object

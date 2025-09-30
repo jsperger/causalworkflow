@@ -37,7 +37,10 @@
 fit.staged_workflow <- function(object, data, ..., discount = 1) {
   checkmate::assert_class(object, "staged_workflow")
   checkmate::assert_data_frame(data)
-  checkmate::assert_names(names(data), must.include = c("stage", "action", "outcome"))
+  checkmate::assert_names(
+    names(data),
+    must.include = c("stage", "action", "outcome")
+  )
   checkmate::assert_factor(data$action, any.missing = FALSE, min.levels = 1)
   checkmate::assert_number(discount, lower = 0, upper = 1)
 
