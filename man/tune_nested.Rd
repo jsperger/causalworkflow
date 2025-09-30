@@ -17,6 +17,8 @@ resampling, such as one created by \code{\link[rsample:vfold_cv]{rsample::vfold_
 
 \item{inner_resamples}{An \code{rsample} object for the inner folds, which will
 be created from the analysis set of each outer fold.}
+
+\item{metric}{A character string for the metric to optimize during tuning.}
 }
 \value{
 A \code{fitted_causal_workflow} object, similar to \code{\link[=fit_across]{fit_across()}}, but

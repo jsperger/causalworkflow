@@ -3,7 +3,7 @@
 #' @description
 #' `r lifecycle::badge("experimental")`
 #'
-#' [{.fn cv_tmle}] implements the Cross-Validated Targeted Maximum Likelihood
+#' [[cv_tmle()]] implements the Cross-Validated Targeted Maximum Likelihood
 #' Estimator (CV-TMLE) for the value of an estimated two-stage optimal
 #' Dynamic Treatment Regime (DTR).
 #'
@@ -13,7 +13,7 @@
 #' 1.  **Initial Nuisance Estimation**: Within each training fold, it fits
 #'     stage-specific models for the Q-functions (outcome models) and
 #'     propensity scores (treatment models) using the provided
-#'     [{.cls causal_workflow}] objects. This step uses nested resampling to
+#'     [`causal_workflow`] objects. This step uses nested resampling to
 #'     tune or ensemble the models.
 #' 2.  **DTR Estimation**: The fitted Q-models are used to derive an estimate
 #'     of the optimal DTR for that fold.
@@ -26,8 +26,8 @@
 #'     on the empirical variance of the estimated influence curve (IC).
 #'
 #' @param data A `data.frame` containing the observational data.
-#' @param resamples An [{.pkg rsample}] object for K-fold cross-validation.
-#' @param stages A named list of [{.cls causal_workflow}] objects, one for each
+#' @param resamples An `rsample` object for K-fold cross-validation.
+#' @param stages A named list of [`causal_workflow`] objects, one for each
 #'   stage.
 #' @param actions A character vector of the column names for the treatment
 #'   variables at each stage.
@@ -320,7 +320,12 @@ cv_tmle <- function(
   spec
 }
 
-.fit_nuisance_spec <- function(spec, resamples, training_data, call = rlang::caller_env()) {
+.fit_nuisance_spec <- function(
+  spec,
+  resamples,
+  training_data,
+  call = rlang::caller_env()
+) {
   if (inherits(spec, "workflow")) {
     if (nrow(tune::tunable(spec)) > 0) {
       tuned <- tune::tune_grid(spec, resamples = resamples, grid = 10)

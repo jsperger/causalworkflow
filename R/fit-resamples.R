@@ -24,7 +24,6 @@ tune::fit_resamples
 #' for a comprehensive assessment of the nuisance models before proceeding to
 #' causal effect estimation.
 #'
-#' @inheritParams tune::fit_resamples
 #' @param object A `causal_workflow` object.
 #' @param resamples An `rsample` object, such as one created by
 #'   [rsample::vfold_cv()].

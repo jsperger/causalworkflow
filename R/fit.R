@@ -12,25 +12,24 @@ generics::fit
 #' Fit a causal workflow
 #'
 #' @description
-#' [{.fn fit}] for a [{.cls causal_workflow}] object performs a straightforward,
+#' `fit` for a `causal_workflow` object performs a straightforward,
 #' non-cross-fitted estimation of causal effects. It fits the propensity and
 #' outcome models on the full dataset and uses in-sample predictions to
 #' construct the efficient influence function (EIF) for the potential outcome
 #' mean (POM).
 #'
-#' @details
 #' This method is best suited for simple, non-regularized models (e.g.,
 #' unpenalized logistic or linear regression) where the risk of overfitting is
 #' low. For more complex or regularized models, using in-sample predictions can
 #' lead to biased estimates. In those cases, it is strongly recommended to use
-#' [{.fn fit_across}] for cross-fitted estimation or [{.fn tune_nested}] for
+#' [fit_across()] for cross-fitted estimation or [tune_nested()] for
 #' estimation with hyperparameter tuning.
 #'
 #' The method calculates the EIF for the Potential Outcome Mean (POM) for each
 #' treatment level. The POM is the average outcome that would be observed if all
 #' individuals in the population received a specific treatment.
 #'
-#' @param object A [{.cls causal_workflow}] object that has been configured with
+#' @param object A `causal_workflow` object that has been configured with
 #'   a propensity model and an outcome model.
 #' @param data A data frame containing the training data, including the
 #'   treatment, outcome, and covariate variables.
@@ -49,7 +48,7 @@ generics::fit
 #'   - `nuisance_predictions`: A tibble of the in-sample nuisance
 #'     predictions.
 #'
-#' @seealso [{.fn fit_across}], [{.fn tune_nested}]
+#' @seealso [fit_across()], [tune_nested()]
 #' @export
 fit.causal_workflow <- function(object, data, ...) {
   # 1. Validate inputs

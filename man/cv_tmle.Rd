@@ -18,9 +18,10 @@ cv_tmle(
 \arguments{
 \item{data}{A \code{data.frame} containing the observational data.}
 
-\item{resamples}{An \link[rsample:rsample-package]{rsample::rsample} object for K-fold cross-validation.}
+\item{resamples}{An \code{rsample} object for K-fold cross-validation.}
 
-\item{stages}{A named list of \code{\link[=causal_workflow]{causal_workflow()}} objects, one for each stage.}
+\item{stages}{A named list of \code{\link{causal_workflow}} objects, one for each
+stage.}
 
 \item{actions}{A character vector of the column names for the treatment
 variables at each stage.}
@@ -41,7 +42,7 @@ A \code{cv_tmle_fit} object.
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-\code{\link[=cv_tmle]{cv_tmle()}} implements the Cross-Validated Targeted Maximum Likelihood
+[\code{\link[=cv_tmle]{cv_tmle()}}] implements the Cross-Validated Targeted Maximum Likelihood
 Estimator (CV-TMLE) for the value of an estimated two-stage optimal
 Dynamic Treatment Regime (DTR).
 }
@@ -52,8 +53,8 @@ DTR. The process involves:
 \item \strong{Initial Nuisance Estimation}: Within each training fold, it fits
 stage-specific models for the Q-functions (outcome models) and
 propensity scores (treatment models) using the provided
-\code{\link[=causal_workflow]{causal_workflow()}} objects. This step uses nested resampling to tune or
-ensemble the models.
+\code{\link{causal_workflow}} objects. This step uses nested resampling to
+tune or ensemble the models.
 \item \strong{DTR Estimation}: The fitted Q-models are used to derive an estimate
 of the optimal DTR for that fold.
 \item \strong{Targeting (Fluctuation)}: On the corresponding validation fold, the

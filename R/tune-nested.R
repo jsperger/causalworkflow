@@ -35,7 +35,6 @@ tune::tune_grid
 #' set. These predictions are used to calculate the final, doubly robust causal
 #' effect estimates.
 #'
-#' @inheritParams fit_across.causal_workflow
 #' @param object A [causal_workflow()] object.
 #' @param resamples An `rsample` object for the outer folds of nested
 #'   resampling, such as one created by [rsample::vfold_cv()].
@@ -67,7 +66,12 @@ tune_nested.causal_workflow <- function(
   # 1. Validate inputs
   .check_fit_inputs(object, resamples)
   tune::check_rset(resamples)
-  if (!is.numeric(inner_v) || length(inner_v) != 1 || inner_v < 2 || inner_v %% 1 != 0) {
+  if (
+    !is.numeric(inner_v) ||
+      length(inner_v) != 1 ||
+      inner_v < 2 ||
+      inner_v %% 1 != 0
+  ) {
     cli::cli_abort(
       c(
         "{.arg inner_v} must be a single integer greater than or equal to 2.",
