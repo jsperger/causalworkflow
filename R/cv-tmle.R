@@ -135,19 +135,19 @@ cv_tmle <- function(
   g_fit_2 <- .fit_nuisance_spec(g_spec_2, inner_resamples, analysis_data)
 
   action_2_levels <- levels(analysis_data[[actions[2]]])
-  q2_preds_train <- purrr::map(
+  q2_preds_train <- purrr::map_dfc(
     action_2_levels,
     ~ predict(
       q_fit_2,
+      type = "numeric",
       new_data = dplyr::mutate(
         analysis_data,
         !!actions[2] := factor(.x, levels = action_2_levels)
       )
-    )
+    )$.pred
   ) |>
-    dplyr::bind_cols() |>
     as.matrix()
-  pseudo_outcome_1 <- apply(q2_preds_train, 1, max, na.rm = TRUE)
+  pseudo_outcome_1 <- apply(q2_preds_train, 1, .max_or_na)
   analysis_data_stage1 <- dplyr::mutate(
     analysis_data,
     .pseudo_outcome = pseudo_outcome_1
@@ -160,23 +160,31 @@ cv_tmle <- function(
   action_1_levels <- levels(assessment_data[[actions[1]]])
   q2_preds_assess <- purrr::map_dfc(
     action_2_levels,
-    ~ predict(
-      q_fit_2,
-      new_data = dplyr::mutate(
-        assessment_data,
-        !!actions[2] := factor(.x, levels = action_2_levels)
+    ~ {
+      preds <- predict(
+        q_fit_2,
+        type = "numeric",
+        new_data = dplyr::mutate(
+          assessment_data,
+          !!actions[2] := factor(.x, levels = action_2_levels)
+        )
       )
-    )
+      if (ncol(preds) > 1) rowMeans(preds) else preds$.pred
+    }
   )
   q1_preds_assess <- purrr::map_dfc(
     action_1_levels,
-    ~ predict(
-      q_fit_1,
-      new_data = dplyr::mutate(
-        assessment_data,
-        !!actions[1] := factor(.x, levels = action_1_levels)
+    ~ {
+      preds <- predict(
+        q_fit_1,
+        type = "numeric",
+        new_data = dplyr::mutate(
+          assessment_data,
+          !!actions[1] := factor(.x, levels = action_1_levels)
+        )
       )
-    )
+      if (ncol(preds) > 1) rowMeans(preds) else preds$.pred
+    }
   )
   g1_preds_assess <- predict(g_fit_1, new_data = assessment_data, type = "prob")
   g2_preds_assess <- predict(g_fit_2, new_data = assessment_data, type = "prob")
@@ -258,14 +266,12 @@ cv_tmle <- function(
   q2_star_max <- apply(
     dplyr::select(data, dplyr::starts_with("q2_star_")),
     1,
-    max,
-    na.rm = TRUE
+    .max_or_na
   )
   q1_star_max <- apply(
     dplyr::select(data, dplyr::starts_with("q1_star_")),
     1,
-    max,
-    na.rm = TRUE
+    .max_or_na
   )
 
   D2 <- data$C2 * (data[[outcome]] - q2_star_observed)
