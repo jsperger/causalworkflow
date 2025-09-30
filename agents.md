@@ -142,7 +142,10 @@ Document functions with `#'`. Follow this tag order:
 3.  `@param`
 4.  `@return`
 5.  `@examples` (wrap code in `\dontrun{}`)
-*Use `@details` and `@seealso` if necessary. You may use `@inheritParams fn` to reuse documentation.
+*Use `@details` and `@seealso` if necessary. You may use `@inheritParams fn`
+instead of documenting the parameters; if `@inheritParams fn` is used only
+document parameters that are not shared or that are used in an important and
+different way. 
 
 Don't include the R function definition in the title.
 Be clear and concise, and write for a technical expert audience.

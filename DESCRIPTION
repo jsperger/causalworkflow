@@ -1,6 +1,6 @@
 Package: causalworkflows
 Title: A Framework for Multi-Component and Staged Causal Estimators
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
     person("Sperger", "John", , "josp@duck.com", role = c("aut", "cre"))
   )
