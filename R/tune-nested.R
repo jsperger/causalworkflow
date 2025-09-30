@@ -1,7 +1,3 @@
-#' @importFrom tune tune_grid
-#' @export
-tune::tune_grid
-
 #' Tune and estimate a causal workflow with nested resampling
 #'
 #' @description
@@ -49,12 +45,7 @@ tune::tune_grid
 #'   tuned or ensembled within the nested resampling procedure.
 #'
 #' @export
-tune_nested <- function(object, ...) {
-  UseMethod("tune_nested")
-}
-
-#' @export
-tune_nested.causal_workflow <- function(
+tune_nested <- function(
   object,
   resamples,
   treatment_var,

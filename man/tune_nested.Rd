@@ -4,21 +4,29 @@
 \alias{tune_nested}
 \title{Tune and estimate a causal workflow with nested resampling}
 \usage{
-tune_nested(object, ...)
+tune_nested(
+  object,
+  resamples,
+  treatment_var,
+  outcome_var,
+  inner_v = 5,
+  metric = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{\link[=causal_workflow]{causal_workflow()}} object.}
 
-\item{...}{Additional arguments passed to the underlying tuning or fitting
-functions.}
-
 \item{resamples}{An \code{rsample} object for the outer folds of nested
 resampling, such as one created by \code{\link[rsample:vfold_cv]{rsample::vfold_cv()}}.}
 
+\item{metric}{A character string for the metric to optimize during tuning.}
+
+\item{...}{Additional arguments passed to the underlying tuning or fitting
+functions.}
+
 \item{inner_resamples}{An \code{rsample} object for the inner folds, which will
 be created from the analysis set of each outer fold.}
-
-\item{metric}{A character string for the metric to optimize during tuning.}
 }
 \value{
 A \code{fitted_causal_workflow} object, similar to \code{\link[=fit_across]{fit_across()}}, but

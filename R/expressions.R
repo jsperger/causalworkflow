@@ -10,8 +10,6 @@ build_linear_predictor <- function(x, ...) {
   UseMethod("build_linear_predictor")
 }
 
-#' @import rlang
-
 # `x` should be a tidy-type format for the data with columns terms and estimate.
 build_linear_predictor_eng <- function(x, ...) {
   slopes <- x |> dplyr::filter(terms != "(Intercept)")
