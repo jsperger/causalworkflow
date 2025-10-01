@@ -40,7 +40,7 @@ tune::fit_resamples
 #'   column in the metrics tibble distinguishes between `"propensity_model"`
 #'   and `"outcome_model"`.
 #'
-#' @seealso [fit.causal_workflow()], [fit_across()]
+#' @seealso [fit.causal_workflow()]
 #' @export
 fit_resamples.causal_workflow <- function(
   object,

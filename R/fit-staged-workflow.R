@@ -1,5 +1,3 @@
-# --- `fit` method for `staged_workflow` -----------------------------------------
-
 #' Fit a `staged_workflow`
 #'
 #' @description
@@ -9,7 +7,7 @@
 #' object using a backwards recursive algorithm. It serves as a wrapper around
 #' the core `fit_recursive()` engine.
 #'
-#' @param object A [staged_workflow()] or [fitted_staged_workflow()] object.
+#' @param object A [staged_workflow()] or `fitted_staged_workflow` object.
 #'   If a fitted object is provided, the function will resume the fitting
 #'   process from where it left off.
 #' @param data A data frame containing all necessary variables for all stages.
