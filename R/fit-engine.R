@@ -37,7 +37,9 @@ fit_recursive <- function(
   single_stage = FALSE
 ) {
   # Abort for TMLE fits with > 2 stages until implemented
-  is_tmle_fit <- any(sapply(object$stages, \(s) inherits(s$wflow, "tmle_workflow")))
+  is_tmle_fit <- any(sapply(object$stages, \(s) {
+    inherits(s$wflow, "tmle_workflow")
+  }))
   if (is_tmle_fit && length(object$stages) > 2) {
     cli::cli_abort(
       "CV-TMLE for more than 2 stages is not yet supported."

@@ -147,10 +147,16 @@
 
 .check_fit_inputs <- function(object, data, call = rlang::caller_env()) {
   if (is.null(object$propensity_model)) {
-    cli::cli_abort("The causal workflow must have a propensity model.", call = call)
+    cli::cli_abort(
+      "The causal workflow must have a propensity model.",
+      call = call
+    )
   }
   if (is.null(object$outcome_model)) {
-    cli::cli_abort("The causal workflow must have an outcome model.", call = call)
+    cli::cli_abort(
+      "The causal workflow must have an outcome model.",
+      call = call
+    )
   }
   if (!is.data.frame(data)) {
     cli::cli_abort("{.arg data} must be a data frame.", call = call)

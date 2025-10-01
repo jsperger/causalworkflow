@@ -10,7 +10,11 @@ sim_data <- tibble::tibble(
   outcome = 10 + 2 * treatment + 5 * covar1 + 3 * covar2 + rnorm(n)
 ) |>
   dplyr::mutate(
-    treatment = factor(treatment, levels = c(0, 1), labels = c("control", "treated")),
+    treatment = factor(
+      treatment,
+      levels = c(0, 1),
+      labels = c("control", "treated")
+    ),
     .row = dplyr::row_number()
   )
 
@@ -29,7 +33,8 @@ outcome_wflow <-
 pscore_wflow_tune <-
   workflows::workflow() |>
   workflows::add_model(
-    parsnip::logistic_reg(penalty = tune::tune(), mixture = 1) |> parsnip::set_engine("glmnet")
+    parsnip::logistic_reg(penalty = tune::tune(), mixture = 1) |>
+      parsnip::set_engine("glmnet")
   ) |>
   workflows::add_formula(treatment ~ covar1 + covar2)
 
@@ -60,7 +65,7 @@ test_that("fit_nested works with a single tunable workflow", {
   outer_resamples <- rsample::vfold_cv(sim_data, v = 2)
 
   # Test nested tuning
-  # Note: A grid is not supplied, relying on tune's default grid creation
+  # Note: A grid is not supplied, relying on `fit_nested`'s default grid creation
   set.seed(4321)
   tuned_wflow <- fit_nested(
     aipw_spec_tune,

@@ -62,18 +62,40 @@ fit.tmle_workflow <- function(object, data, ...) {
   g_spec <- object$propensity_model
   q_spec <- object$outcome_model
 
-  g_resamples <- if (.spec_needs_tuning(g_spec)) rsample::vfold_cv(data) else NULL
-  q_resamples <- if (.spec_needs_tuning(q_spec)) rsample::vfold_cv(data) else NULL
+  g_resamples <- if (.spec_needs_tuning(g_spec)) {
+    rsample::vfold_cv(data)
+  } else {
+    NULL
+  }
+  q_resamples <- if (.spec_needs_tuning(q_spec)) {
+    rsample::vfold_cv(data)
+  } else {
+    NULL
+  }
 
-  g_fit <- .fit_nuisance_spec(g_spec, resamples = g_resamples, training_data = data)
-  q_fit <- .fit_nuisance_spec(q_spec, resamples = q_resamples, training_data = data)
+  g_fit <- .fit_nuisance_spec(
+    g_spec,
+    resamples = g_resamples,
+    training_data = data
+  )
+  q_fit <- .fit_nuisance_spec(
+    q_spec,
+    resamples = q_resamples,
+    training_data = data
+  )
 
   # 2. Extract components and generate initial predictions
   treatment_var <- .extract_var_name(object$propensity_model)
   treatment_levels <- levels(data[[treatment_var]])
   outcome_var <- "outcome" # Standardized by recursive engine
 
-  initial_preds <- .get_nuisance_preds(g_fit, q_fit, data, treatment_var, treatment_levels)
+  initial_preds <- .get_nuisance_preds(
+    g_fit,
+    q_fit,
+    data,
+    treatment_var,
+    treatment_levels
+  )
   nuisance_preds <- dplyr::bind_cols(data, initial_preds)
 
   # 3. Determine optimal policy `d_k(H_k)` based on initial Q_k_hat
@@ -86,9 +108,11 @@ fit.tmle_workflow <- function(object, data, ...) {
     data = nuisance_preds,
     model_prefix = "g_hat",
     observed_actions = data[[treatment_var]]
-  ) |> pmax(0.025)
+  ) |>
+    pmax(0.025)
 
-  clever_cov <- as.numeric(data[[treatment_var]] == optimal_action) / g_hat_observed
+  clever_cov <- as.numeric(data[[treatment_var]] == optimal_action) /
+    g_hat_observed
 
   # 5. Fit the fluctuation model to find `epsilon_k`
   q_hat_observed <- .get_observed_prob(
@@ -108,7 +132,9 @@ fit.tmle_workflow <- function(object, data, ...) {
     data = fluctuation_data,
     family = "gaussian"
   ))
-  if (is.na(epsilon)) epsilon <- 0
+  if (is.na(epsilon)) {
+    epsilon <- 0
+  }
 
   # 6. Create targeted predictions: Q_k_star = Q_k_hat + epsilon_k * C_k
   q_star_cols <- tibble::as_tibble(q_hat_cols + (epsilon * clever_cov))
@@ -133,5 +159,8 @@ fit.tmle_workflow <- function(object, data, ...) {
 .get_observed_prob <- function(data, model_prefix, observed_actions) {
   pred_cols <- dplyr::select(data, dplyr::starts_with(model_prefix))
   action_levels <- sub(paste0(model_prefix, "_"), "", colnames(pred_cols))
-  as.matrix(pred_cols)[cbind(seq_len(nrow(data)), match(observed_actions, action_levels))]
+  as.matrix(pred_cols)[cbind(
+    seq_len(nrow(data)),
+    match(observed_actions, action_levels)
+  )]
 }

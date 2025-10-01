@@ -108,11 +108,27 @@ fit.causal_workflow <- function(object, data, ..., control = control_fit()) {
   treatment_levels <- levels(data[[treatment_var]])
 
   # 3. Fit models, with internal tuning if necessary
-  g_resamples <- if (.spec_needs_tuning(pscore_spec)) rsample::vfold_cv(data) else NULL
-  q_resamples <- if (.spec_needs_tuning(outcome_spec)) rsample::vfold_cv(data) else NULL
+  g_resamples <- if (.spec_needs_tuning(pscore_spec)) {
+    rsample::vfold_cv(data)
+  } else {
+    NULL
+  }
+  q_resamples <- if (.spec_needs_tuning(outcome_spec)) {
+    rsample::vfold_cv(data)
+  } else {
+    NULL
+  }
 
-  g_fit <- .fit_nuisance_spec(pscore_spec, resamples = g_resamples, training_data = data)
-  q_fit <- .fit_nuisance_spec(outcome_spec, resamples = q_resamples, training_data = data)
+  g_fit <- .fit_nuisance_spec(
+    pscore_spec,
+    resamples = g_resamples,
+    training_data = data
+  )
+  q_fit <- .fit_nuisance_spec(
+    outcome_spec,
+    resamples = q_resamples,
+    training_data = data
+  )
 
   # 4. Generate in-sample nuisance predictions
   nuisance_preds <- .get_nuisance_preds(
@@ -171,24 +187,42 @@ fit.causal_workflow <- function(object, data, ..., control = control_fit()) {
 
 
 # --- Internal Helpers for Nuisance Models and EIF ---
-.get_nuisance_preds <- function(g_fit, q_fit, data, treatment_var, treatment_levels) {
+.get_nuisance_preds <- function(
+  g_fit,
+  q_fit,
+  data,
+  treatment_var,
+  treatment_levels
+) {
   g_preds <- predict(g_fit, new_data = data, type = "prob") |>
-    dplyr::rename_with(~ paste0("g_hat_", sub(".pred_", "", .x)), .cols = dplyr::starts_with(".pred_"))
+    dplyr::rename_with(
+      ~ paste0("g_hat_", sub(".pred_", "", .x)),
+      .cols = dplyr::starts_with(".pred_")
+    )
 
   q_hat_preds <- purrr::map(
     treatment_levels,
     function(lvl) {
       counterfactual_data <- data
-      counterfactual_data[[treatment_var]] <- factor(lvl, levels = treatment_levels)
+      counterfactual_data[[treatment_var]] <- factor(
+        lvl,
+        levels = treatment_levels
+      )
       predict(q_fit, new_data = counterfactual_data) |>
         dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
     }
-  ) |> purrr::list_cbind()
+  ) |>
+    purrr::list_cbind()
 
   dplyr::bind_cols(g_preds, q_hat_preds)
 }
 
-.calculate_eif_pom <- function(data, treatment_var, outcome_var, treatment_levels) {
+.calculate_eif_pom <- function(
+  data,
+  treatment_var,
+  outcome_var,
+  treatment_levels
+) {
   Y <- data[[outcome_var]]
   A <- data[[treatment_var]]
 
