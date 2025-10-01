@@ -101,9 +101,11 @@ add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
       )
     )
   }
-  if (!inherits(wflow, "workflow") &&
+  if (
+    !inherits(wflow, "workflow") &&
       !inherits(wflow, "causal_workflow") &&
-      !inherits(wflow, "workflow_set")) {
+      !inherits(wflow, "workflow_set")
+  ) {
     cli::cli_abort(
       c(
         "{.arg wflow} must be a {.cls workflow}, {.cls causal_workflow}, or {.cls workflow_set} object.",
@@ -117,7 +119,9 @@ add_stage_model <- function(x, wflow, stage = NULL, stages = NULL) {
   }
 
   if (!is.null(stage)) {
-    if (!is.numeric(stage) || length(stage) != 1 || stage < 1 || stage %% 1 != 0) {
+    if (
+      !is.numeric(stage) || length(stage) != 1 || stage < 1 || stage %% 1 != 0
+    ) {
       cli::cli_abort("{.arg stage} must be a single positive integer.")
     }
     stages <- stage

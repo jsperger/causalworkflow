@@ -157,6 +157,11 @@ Do not use `purrr::map_dfr` or `purrr::map_dfc`. Use `purrr::map()`,
 `purrr::map2()`, etc. piped into `purrr::list_cbind()` or `purrr::list_rbind()`
 instead.
 
+When calling a function with multiple arguments pass the arguments by name. Do
+not rely on position for passing arguments.
+
+Avoid "shadowing" variables. Avoid naming objects with the name of a base R
+function.
 
 # Tools & Commands
 ## Installing R packages

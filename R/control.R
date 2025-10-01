@@ -38,6 +38,20 @@ control_causal_grid <- function() {
   )
 }
 
+#' Control settings for the recursive fitting engine
+#'
+#' This function provides a basic control object for the `fit_recursive` engine.
+#'
+#' @return A `control_fit` object, which is a list containing control
+#'   parameters.
+#' @export
+control_fit <- function() {
+  structure(
+    list(),
+    class = "control_fit"
+  )
+}
+
 #' @rdname control_causal
 #' @export
 control_causal_resamples <- function() {

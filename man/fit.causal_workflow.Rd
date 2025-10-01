@@ -4,51 +4,31 @@
 \alias{fit.causal_workflow}
 \title{Fit a causal workflow}
 \usage{
-\method{fit}{causal_workflow}(object, data, ...)
+\method{fit}{causal_workflow}(object, data, ..., control = control_fit())
 }
 \arguments{
 \item{object}{A \code{causal_workflow} object that has been configured with
 a propensity model and an outcome model.}
 
-\item{data}{A data frame containing the training data, including the
-treatment, outcome, and covariate variables.}
+\item{data}{A data frame containing the training data.}
 
 \item{...}{Not used.}
+
+\item{control}{A \code{control_fit} object. Currently unused but reserved for
+future enhancements.}
 }
 \value{
-A \code{fitted_causal_workflow} object. This object contains:
-\itemize{
-\item \code{propensity_model_fit}, \code{outcome_model_fit}: The nuisance models
-fitted on the full dataset.
-\item \code{treatment_levels}: A character vector of the treatment levels.
-\item \code{estimates}: A tibble with the estimated potential outcome for each
-treatment level.
-\item \code{variances}: A tibble with the variance of the potential outcome
-estimator for each level.
-\item \code{eif_pom}: A tibble of the observation-level efficient influence function
-(EIF) values for the POM, with one column for each treatment level.
-\item \code{nuisance_predictions}: A tibble of the in-sample nuisance
-predictions.
-}
+A \code{fitted_causal_workflow} object.
 }
 \description{
 \code{fit} for a \code{causal_workflow} object performs a straightforward,
-non-cross-fitted estimation of causal effects. It fits the propensity and
-outcome models on the full dataset and uses in-sample predictions to
-construct the efficient influence function (EIF) for the potential outcome
-mean (POM).
+non-cross-fitted estimation of causal effects.
 
-This method is best suited for simple, non-regularized models (e.g.,
-unpenalized logistic or linear regression) where the risk of overfitting is
-low. For more complex or regularized models, using in-sample predictions can
-lead to biased estimates. In those cases, it is strongly recommended to use
-\code{\link[=fit_across]{fit_across()}} for cross-fitted estimation or \code{\link[=tune_nested]{tune_nested()}} for
-estimation with hyperparameter tuning.
-
-The method calculates the EIF for the Potential Outcome Mean (POM) for each
-treatment level. The POM is the average outcome that would be observed if all
-individuals in the population received a specific treatment.
+If the \code{propensity_model} or \code{outcome_model} contains tunable hyperparameters
+(e.g., from \code{tune()}) or is a \code{workflow_set}, this function will
+automatically perform internal cross-validation to tune the models or build
+an ensemble before fitting the final models on the full dataset.
 }
 \seealso{
-\code{\link[=fit_across]{fit_across()}}, \code{\link[=tune_nested]{tune_nested()}}
+\code{\link[=fit_nested]{fit_nested()}}, \code{\link[=fit.staged_workflow]{fit.staged_workflow()}}
 }

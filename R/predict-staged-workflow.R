@@ -42,7 +42,9 @@ predict.fitted_staged_workflow <-
         )
       )
     }
-    if (!is.numeric(stage) || length(stage) != 1 || stage < 1 || stage %% 1 != 0) {
+    if (
+      !is.numeric(stage) || length(stage) != 1 || stage < 1 || stage %% 1 != 0
+    ) {
       cli::cli_abort("{.arg stage} must be a single positive integer.")
     }
 
