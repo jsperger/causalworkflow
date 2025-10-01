@@ -14,7 +14,7 @@ fit_recursive(
 )
 }
 \arguments{
-\item{object}{A \code{staged_workflow} object.}
+\item{object}{A \code{staged_workflow} or \code{fitted_staged_workflow} object.}
 
 \item{data}{A data frame containing all necessary variables for all stages.}
 

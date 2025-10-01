@@ -4,19 +4,7 @@
 \alias{.get_observed_prob}
 \title{Helper to extract the predicted probability for the observed action}
 \usage{
-.get_observed_prob(data, model_prefix, action_col, observed_actions)
-}
-\arguments{
-\item{data}{A tibble of predictions.}
-
-\item{model_prefix}{The prefix for the prediction columns (e.g., "g_hat").}
-
-\item{action_col}{The name of the column with the observed actions.}
-
-\item{observed_actions}{A vector of the observed actions.}
-}
-\value{
-A numeric vector of probabilities.
+.get_observed_prob(data, model_prefix, observed_actions)
 }
 \description{
 Helper to extract the predicted probability for the observed action

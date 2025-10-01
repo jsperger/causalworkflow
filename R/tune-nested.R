@@ -48,8 +48,49 @@ tune_nested <- function(
   pscore_spec <- object$propensity_model
   outcome_spec <- object$outcome_model
 
-  treatment_formula <- hardhat::extract_preprocessor(pscore_spec)
-  treatment_var <- rlang::f_lhs(treatment_formula) |> rlang::as_name()
+  pscore_spec_is_wf_set <- inherits(pscore_spec, "workflow_set")
+  outcome_spec_is_wf_set <- inherits(outcome_spec, "workflow_set")
+  if (pscore_spec_is_wf_set) {
+    pscore_ids <- pscore_spec$wflow_id
+    treatment_formula_list <- purrr::map(pscore_ids, \(wf_id) {
+      hardhat::extract_preprocessor(pscore_spec, id = wf_id)
+    })
+    treatment_vars <- purrr::map_chr(
+      treatment_formula_list,
+      ~ rlang::as_name(rlang::f_lhs(.x))
+    )
+    all_trt_vars_equal <- all(treatment_vars == treatment_vars[[1]])
+    if (!all_trt_vars_equal) {
+      cli::cli_abort(
+        "all treatment vars for the same stage component must be the same"
+      )
+    }
+    treatment_var <- treatment_vars[[1]]
+  } else {
+    treatment_formula <- hardhat::extract_preprocessor(pscore_spec)
+    treatment_var <- rlang::f_lhs(treatment_formula) |> rlang::as_name()
+  }
+  if (outcome_spec_is_wf_set) {
+    outcome_ids <- outcome_spec$wflow_id
+    outcome_formula_list <- purrr::map(outcome_ids, \(wf_id) {
+      hardhat::extract_preprocessor(outcome_spec, id = wf_id)
+    })
+    outcome_vars <- purrr::map_chr(
+      outcome_formula_list,
+      ~ rlang::as_name(rlang::f_lhs(.x))
+    )
+    all_outcome_vars_equal <- all(outcome_vars == outcome_vars[[1]])
+    if (!all_outcome_vars_equal) {
+      cli::cli_abort(
+        "all outcome vars for the same stage component must be the same"
+      )
+    }
+    outcome_var <- outcome_vars[[1]]
+  } else {
+    outcome_formula <- hardhat::extract_preprocessor(outcome_spec)
+    outcome_var <- rlang::f_lhs(outcome_formula) |> rlang::as_name()
+  }
+
   outcome_formula <- hardhat::extract_preprocessor(outcome_spec)
   outcome_var <- rlang::f_lhs(outcome_formula) |> rlang::as_name()
 
@@ -62,7 +103,7 @@ tune_nested <- function(
     purrr::map(
       resamples$splits,
       ~ .fit_predict_one_nested_fold(
-        split = .x,
+        cur_split = .x,
         pscore_spec = pscore_spec,
         outcome_spec = outcome_spec,
         inner_v = inner_v,
@@ -129,7 +170,7 @@ tune_nested <- function(
 
 # Helper for one outer fold of nested resampling
 .fit_predict_one_nested_fold <- function(
-  split,
+  cur_split,
   pscore_spec,
   outcome_spec,
   inner_v,
@@ -137,12 +178,17 @@ tune_nested <- function(
   treatment_levels,
   metric
 ) {
-  analysis_data <- rsample::analysis(split)
-  assessment_data <- rsample::assessment(split)
+  analysis_data <- rsample::analysis(cur_split)
+  assessment_data <- rsample::assessment(cur_split)
 
   inner_folds <- rsample::vfold_cv(analysis_data, v = inner_v)
 
-  g_fit <- .fit_nuisance_spec(pscore_spec, inner_folds, analysis_data, metric)
+  g_fit <- .fit_nuisance_spec(
+    spec = pscore_spec,
+    resamples = inner_folds,
+    training_data = analysis_data,
+    metric = metric
+  )
   q_fit <- .fit_nuisance_spec(outcome_spec, inner_folds, analysis_data, metric)
 
   nuisance_preds <- .get_nuisance_preds(

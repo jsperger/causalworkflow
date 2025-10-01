@@ -2,12 +2,17 @@
 % Please edit documentation in R/fit-staged-workflow.R
 \name{fit.staged_workflow}
 \alias{fit.staged_workflow}
+\alias{fit.fitted_staged_workflow}
 \title{Fit a \code{staged_workflow}}
 \usage{
 \method{fit}{staged_workflow}(object, data, ..., discount = 1, control = control_fit())
+
+\method{fit}{fitted_staged_workflow}(object, data, ..., discount = 1, control = control_fit())
 }
 \arguments{
-\item{object}{A \code{\link[=staged_workflow]{staged_workflow()}} object.}
+\item{object}{A \code{\link[=staged_workflow]{staged_workflow()}} or \code{fitted_staged_workflow} object.
+If a fitted object is provided, the function will resume the fitting
+process from where it left off.}
 
 \item{data}{A data frame containing all necessary variables for all stages.}
 
@@ -32,6 +37,6 @@ the core \code{fit_recursive()} engine.
 \details{
 The fitting process proceeds in reverse order of the stages (\code{K} down to \code{1}).
 For any stage \code{k < K}, the model is fit to a "pseudo-outcome" calculated from
-the predictions of the model at stage \code{k+1}. See \code{\link[=fit_recursive]{fit_recursive()}} for more
-details on the underlying mechanism.
+the predictions of the model at stage \code{k+1}. See the underlying recursive
+engine for more details.
 }

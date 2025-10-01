@@ -7,7 +7,9 @@
 fit_next_stage(object, data, ..., discount = 1, control = control_fit())
 }
 \arguments{
-\item{object}{A \code{\link[=staged_workflow]{staged_workflow()}} object.}
+\item{object}{A \code{\link[=staged_workflow]{staged_workflow()}} or \code{fitted_staged_workflow} object.
+If a fitted object is provided, the function will resume the fitting
+process from where it left off.}
 
 \item{data}{A data frame containing all necessary variables for all stages.}
 

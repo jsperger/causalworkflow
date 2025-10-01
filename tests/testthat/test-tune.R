@@ -27,6 +27,9 @@ test_that("A staged_workflow with a tunable tmle_workflow can be fitted", {
   skip_if_not_installed("rsample")
 
   # A tmle_workflow with a tunable model
+  glmnet_logit_mod <- parsnip::logistic_reg(penalty = tune()) |>
+    parsnip::set_engine("glmnet")
+
   stage_1_tmle_tuned <- tmle_workflow() |>
     add_outcome_model(
       workflow() |>
@@ -35,7 +38,7 @@ test_that("A staged_workflow with a tunable tmle_workflow can be fitted", {
     ) |>
     add_propensity_model(
       workflow() |>
-        add_model(logistic_reg(penalty = tune())) |>
+        add_model(glmnet_logit_mod) |>
         add_formula(action ~ covar1)
     )
 
@@ -67,7 +70,12 @@ test_that("A staged_workflow can use a workflow_set", {
 
   # A workflow_set for the outcome model
   outcome_models <- workflow_set(
-    preproc = list(base = recipe(outcome ~ covar1 + action, data = sim_data_staged[sim_data_staged$stage == 1,])),
+    preproc = list(
+      base = recipe(
+        outcome ~ covar1 + action,
+        data = sim_data_staged[sim_data_staged$stage == 1, ]
+      )
+    ),
     models = list(lm = linear_reg(), glmnet = linear_reg(penalty = 0.1))
   )
 

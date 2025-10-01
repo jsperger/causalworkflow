@@ -55,5 +55,5 @@ for a comprehensive assessment of the nuisance models before proceeding to
 causal effect estimation.
 }
 \seealso{
-\code{\link[=fit.causal_workflow]{fit.causal_workflow()}}, \code{\link[=fit_across]{fit_across()}}
+\code{\link[=fit.causal_workflow]{fit.causal_workflow()}}
 }

@@ -31,19 +31,17 @@
       )
     )
   }
+  pset <- hardhat::extract_parameter_set_dials(spec)
+  needs_tuning <- (nrow(pset) > 0L) || is_wflow_set
 
-  is_tunable <- (is_wflow && nrow(tune::tunable(spec)) > 0) || is_wflow_set
-
-  if (!is_tunable) {
+  if (!needs_tuning) {
     return(parsnip::fit(spec, data = training_data))
   }
 
   # --- If we reach here, tuning or stacking is required ---
-
-  if (is.null(resamples)) {
-    resamples <- rsample::vfold_cv(training_data, v = 5)
+  if (needs_tuning && is.null(resamples)) {
+    cli::cli_abort("{.arg resamples} must be provided when tuning is required")
   }
-
   if (is_wflow) {
     # It's a tunable workflow
     tuned <- tune::tune_grid(spec, resamples = resamples)
