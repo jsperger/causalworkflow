@@ -17,15 +17,6 @@
 #' - An **inner loop** that uses the analysis sets from the outer loop to
 #'   perform hyperparameter tuning or ensemble fitting.
 #'
-#' This function handles two main scenarios:
-#' 1.  When a component (propensity or outcome model) is a single [workflows::workflow()]
-#'     with tunable hyperparameters, `tune_nested()` uses the inner resamples
-#'     to run [tune::tune_grid()] to find the best hyperparameter combination.
-#' 2.  When a component is a [workflowsets::workflow_set()], `tune_nested()` uses the inner
-#'     resamples to fit an ensemble using the `stacks` package. It trains each
-#'     candidate model in the set, blends their predictions into a stacked
-#'     ensemble, and fits the final members.
-#'
 #' The best-performing model or the fitted ensemble from the inner loop is then
 #' used to generate out-of-sample predictions for the outer loop's assessment
 #' set. These predictions are used to calculate the final, doubly robust causal
@@ -34,56 +25,41 @@
 #' @param object A [causal_workflow()] object.
 #' @param resamples An `rsample` object for the outer folds of nested
 #'   resampling, such as one created by [rsample::vfold_cv()].
-#' @param inner_resamples An `rsample` object for the inner folds, which will
-#'   be created from the analysis set of each outer fold.
-#' @param metric A character string for the metric to optimize during tuning.
 #' @param ... Additional arguments passed to the underlying tuning or fitting
 #'   functions.
+#' @param inner_v The number of folds for the inner resampling loop.
+#' @param metric A character string for the metric to optimize during tuning.
 #'
-#' @return A `fitted_causal_workflow` object, similar to [fit_across()], but
-#'   where the nuisance predictions are generated from models that have been
-#'   tuned or ensembled within the nested resampling procedure.
+#' @return A `fitted_causal_workflow` object.
 #'
 #' @export
 tune_nested <- function(
   object,
   resamples,
-  treatment_var,
-  outcome_var,
+  ...,
   inner_v = 5,
-  metric = NULL,
-  ...
+  metric = NULL
 ) {
   # 1. Validate inputs
-  .check_fit_inputs(object, resamples)
+  .check_fit_inputs(object, resamples$splits[[1]]$data)
   tune::check_rset(resamples)
-  if (
-    !is.numeric(inner_v) ||
-      length(inner_v) != 1 ||
-      inner_v < 2 ||
-      inner_v %% 1 != 0
-  ) {
-    cli::cli_abort(
-      c(
-        "{.arg inner_v} must be a single integer greater than or equal to 2.",
-        "x" = "You've supplied a {.cls {class(inner_v)[[1]]}} with value {.val {inner_v}}."
-      )
-    )
-  }
-  # treatment_var and outcome_var are now required arguments
 
   # 2. Extract workflows and variable names
   pscore_spec <- object$propensity_model
   outcome_spec <- object$outcome_model
 
-  # Ensure treatment is a factor and get levels for counterfactual prediction
-  data <- resamples$splits[[1]]$data # Use first split to get variable info
+  treatment_formula <- hardhat::extract_preprocessor(pscore_spec)
+  treatment_var <- rlang::f_lhs(treatment_formula) |> rlang::as_name()
+  outcome_formula <- hardhat::extract_preprocessor(outcome_spec)
+  outcome_var <- rlang::f_lhs(outcome_formula) |> rlang::as_name()
+
+  data <- resamples$splits[[1]]$data
   data[[treatment_var]] <- as.factor(data[[treatment_var]])
   treatment_levels <- levels(data[[treatment_var]])
 
   # 3. Perform nested cross-fitting to get nuisance predictions
   nuisance_preds <-
-    purrr::map_dfr(
+    purrr::map(
       resamples$splits,
       ~ .fit_predict_one_nested_fold(
         split = .x,
@@ -94,45 +70,31 @@ tune_nested <- function(
         treatment_levels = treatment_levels,
         metric = metric
       )
-    )
+    ) |>
+    purrr::list_rbind()
 
   # 4. Join predictions back to original data
-  # This relies on the data used to create resamples having a .row column
-  data_with_row <- resamples$splits[[1]]$data
+  data_with_row <- resamples$splits[[1]]$data |>
+    dplyr::mutate(.row = dplyr::row_number())
   data_with_preds <-
     dplyr::left_join(data_with_row, nuisance_preds, by = ".row")
 
   # 5. Calculate EIF for the Potential Outcome Mean (POM)
-  Y <- data_with_preds[[outcome_var]]
-  A <- data_with_preds[[treatment_var]]
-
-  eif_list <-
-    purrr::map(
-      treatment_levels,
-      function(lvl) {
-        g_hat_lvl <- data_with_preds[[paste0("g_hat_", lvl)]]
-        q_hat_lvl <- data_with_preds[[paste0("q_hat_", lvl)]]
-        indicator <- as.numeric(A == lvl)
-
-        eif_pom <- (indicator / g_hat_lvl) * (Y - q_hat_lvl) + q_hat_lvl
-        eif_pom
-      }
-    )
-
-  names(eif_list) <- paste0("eif_pom_", treatment_levels)
-  eif_tibble <- tibble::as_tibble(eif_list)
+  eif_tibble <- .calculate_eif_pom(
+    data = data_with_preds,
+    treatment_var = treatment_var,
+    outcome_var = outcome_var,
+    treatment_levels = treatment_levels
+  )
 
   # 6. Calculate potential outcome estimates and their variance
   potential_outcomes <- colMeans(eif_tibble, na.rm = TRUE)
   variance_estimates <- apply(eif_tibble, 2, stats::var, na.rm = TRUE) /
     colSums(!is.na(eif_tibble))
 
-  # 7. Fit final models on full data (using the tuned/ensembled spec)
-  # This part is complex: for now, we return NULL for the final fits,
-  # as the primary output is the robust estimate. A full implementation
-  # would re-run the tuning/stacking on the full dataset.
-  final_g_fit <- NULL
-  final_q_fit <- NULL
+  # 7. Fit final models on full data
+  final_g_fit <- .fit_nuisance_spec(pscore_spec, resamples, data, metric)
+  final_q_fit <- .fit_nuisance_spec(outcome_spec, resamples, data, metric)
 
   # 8. Construct return object
   estimates_tbl <- tibble::enframe(
@@ -162,7 +124,6 @@ tune_nested <- function(
     )
 
   class(fitted_obj) <- "fitted_causal_workflow"
-
   return(fitted_obj)
 }
 
@@ -179,75 +140,19 @@ tune_nested <- function(
   analysis_data <- rsample::analysis(split)
   assessment_data <- rsample::assessment(split)
 
-  # Create inner folds from the analysis data
   inner_folds <- rsample::vfold_cv(analysis_data, v = inner_v)
 
-  # Fit nuisance models using the inner folds for tuning/stacking
   g_fit <- .fit_nuisance_spec(pscore_spec, inner_folds, analysis_data, metric)
   q_fit <- .fit_nuisance_spec(outcome_spec, inner_folds, analysis_data, metric)
 
-  # Generate predictions on the assessment set
-  g_preds <- predict(g_fit, new_data = assessment_data, type = "prob") |>
-    dplyr::rename_with(
-      ~ paste0("g_hat_", sub(".pred_", "", .x)),
-      .cols = dplyr::starts_with(".pred_")
-    )
-
-  q_hat_preds <-
-    purrr::map(
-      treatment_levels,
-      function(lvl) {
-        counterfactual_data <- assessment_data
-        counterfactual_data[[treatment_var]] <- factor(
-          lvl,
-          levels = treatment_levels
-        )
-        predict(q_fit, new_data = counterfactual_data) |>
-          dplyr::rename(!!paste0("q_hat_", lvl) := .pred)
-      }
-    ) |>
-    dplyr::bind_cols()
+  nuisance_preds <- .get_nuisance_preds(
+    g_fit = g_fit,
+    q_fit = q_fit,
+    data = assessment_data,
+    treatment_var = treatment_var,
+    treatment_levels = treatment_levels
+  )
 
   tibble::tibble(.row = assessment_data$.row) |>
-    dplyr::bind_cols(g_preds) |>
-    dplyr::bind_cols(q_hat_preds)
-}
-
-# Helper to fit a nuisance model spec (workflow or workflow_set)
-.fit_nuisance_spec <- function(spec, resamples, training_data, metric = NULL) {
-  if (inherits(spec, "workflow")) {
-    # If it's a workflow, tune it if it has tunable parameters
-    if (nrow(tune::tunable(spec)) > 0) {
-      # tune_grid uses a default grid if not specified
-      tuned <- tune::tune_grid(spec, resamples = resamples)
-      best_params <- tune::select_best(tuned, metric = metric)
-      tune::finalize_workflow(spec, best_params) |>
-        parsnip::fit(data = training_data)
-    } else {
-      # Otherwise, just fit it on the full analysis set
-      parsnip::fit(spec, data = training_data)
-    }
-  } else if (inherits(spec, "workflow_set")) {
-    # If it's a workflow_set, build a stack
-    wf_set_trained <-
-      workflowsets::workflow_map(
-        spec,
-        "tune_grid",
-        resamples = resamples,
-        control = stacks::control_stack_grid(),
-        verbose = FALSE
-      )
-
-    stacks::stacks() |>
-      stacks::add_candidates(wf_set_trained) |>
-      stacks::blend_predictions() |>
-      stacks::fit_members()
-  } else {
-    cli::cli_abort(
-      c(
-        "{.arg spec} must be a {.cls workflow} or {.cls workflow_set} object.",
-        "x" = "You've supplied a {.cls {class(spec)[[1]]}}."
-      )
-    )
-  }
+    dplyr::bind_cols(nuisance_preds)
 }
