@@ -37,9 +37,9 @@ test_that("`fit.staged_workflow` runs and returns the correct structure", {
   expect_true(fitted_spec$models$`2`$trained)
 })
 
-# --- Test `fit_next_stage` and resumable fitting ------------------------------
+# --- Test `fit_stage_iteration` and resumable fitting -------------------------
 
-test_that("`fit_next_stage` and resumable fits work correctly", {
+test_that("`fit_stage_iteration` and resumable fits work correctly", {
   # A 3-stage dataset
   set.seed(456)
   sim_data_3_stage <- data.frame(
@@ -59,14 +59,14 @@ test_that("`fit_next_stage` and resumable fits work correctly", {
     add_stage_model(lm_wflow, stages = 1:3) # A 3-stage workflow
 
   # 1. Fit only the last stage (stage 3)
-  fitted_stage_3 <- fit_next_stage(spec, data = sim_data_3_stage)
+  fitted_stage_3 <- fit_stage_iteration(spec, data = sim_data_3_stage)
   expect_s3_class(fitted_stage_3, "fitted_staged_workflow")
   expect_equal(length(fitted_stage_3$models), 1)
   expect_true("3" %in% names(fitted_stage_3$models))
   expect_false("2" %in% names(fitted_stage_3$models))
 
   # 2. Fit the next stage (stage 2)
-  fitted_stage_3_2 <- fit_next_stage(fitted_stage_3, data = sim_data_3_stage)
+  fitted_stage_3_2 <- fit_stage_iteration(fitted_stage_3, data = sim_data_3_stage)
   expect_equal(length(fitted_stage_3_2$models), 2)
   expect_true(all(c("3", "2") %in% names(fitted_stage_3_2$models)))
   expect_false("1" %in% names(fitted_stage_3_2$models))

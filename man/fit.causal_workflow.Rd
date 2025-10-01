@@ -30,5 +30,5 @@ automatically perform internal cross-validation to tune the models or build
 an ensemble before fitting the final models on the full dataset.
 }
 \seealso{
-\code{\link[=tune_nested]{tune_nested()}}, \code{\link[=fit.staged_workflow]{fit.staged_workflow()}}
+\code{\link[=fit_nested]{fit_nested()}}, \code{\link[=fit.staged_workflow]{fit.staged_workflow()}}
 }

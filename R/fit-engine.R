@@ -11,7 +11,7 @@
 #'
 #' This is the core, internal recursive engine for fitting `staged_workflow`
 #' objects. It is designed to be called by user-facing `fit()` methods like
-#' `fit.staged_workflow()` and `fit_next_stage()`.
+#' `fit.staged_workflow()` and `fit_stage_iteration()`.
 #'
 #' The engine works backwards from the last stage to the first. It can handle
 #' both full fitting processes (from stage `K` to `1`) and partial fits
@@ -120,6 +120,48 @@ fit_recursive <- function(
 
   class(res) <- "fitted_staged_workflow"
   res
+}
+
+#' Fit the next stage of a `staged_workflow`
+#'
+#' @description
+#' `r lifecycle::badge("experimental")`
+#'
+#' This function fits the next sequential model in a `staged_workflow` object.
+#' It is a valuable tool for debugging and for manually stepping through the
+#' backwards recursive fitting process.
+#'
+#' @inheritParams fit.staged_workflow
+#'
+#' @details
+#' Given a `staged_workflow` that may be partially fitted, this function
+#' identifies the next stage that needs to be fitted (the highest-numbered
+#' unfitted stage) and fits only that single stage. It uses the same recursive
+#' engine as `fit.staged_workflow()`, but instructs it to stop after one
+#' iteration.
+#'
+#' For example, if you have a 4-stage workflow where stages 4 and 3 are already
+#' fitted, calling `fit_stage_iteration()` will fit stage 2 and return the updated
+#' object with stages 4, 3, and 2 fitted.
+#'
+#' @return A `fitted_staged_workflow` object with one additional stage fitted.
+#' @export
+fit_stage_iteration <- function(
+  object,
+  data,
+  ...,
+  discount = 1,
+  control = control_fit()
+) {
+  .check_staged_fit_inputs(object, data, discount)
+
+  fit_recursive(
+    object = object,
+    data = data,
+    discount = discount,
+    control = control,
+    single_stage = TRUE
+  )
 }
 
 .calculate_pseudo_outcome <- function(

@@ -1,13 +1,75 @@
-# NOTE on extensibility: This basic `fit` method is designed for simple,
-# non-regularized models where in-sample prediction does not introduce
-# significant bias. For models requiring regularization or hyperparameter
-# tuning, the cross-fitting (`fit_resamples()`) or nested tuning (`tune_nested()`)
-# methods should be used to ensure robust, unbiased estimation of causal
-# effects.
-
 #' @importFrom generics fit
 #' @export
 generics::fit
+
+# --- Staged Workflows --------------------------------------------------------
+
+#' Fit a `staged_workflow`
+#'
+#' @description
+#' `r lifecycle::badge("experimental")`
+#'
+#' This function fits the sequence of models defined in a [staged_workflow()]
+#' object using a backwards recursive algorithm. It serves as a wrapper around
+#' the core `fit_recursive()` engine.
+#'
+#' @param object A [staged_workflow()] or `fitted_staged_workflow` object.
+#'   If a fitted object is provided, the function will resume the fitting
+#'   process from where it left off.
+#' @param data A data frame containing all necessary variables for all stages.
+#' @param ... Not used.
+#' @param discount A numeric value between 0 and 1 for discounting future
+#'   outcomes. Defaults to 1 (no discounting).
+#' @param control A `control_fit` object to manage the fitting process.
+#'
+#' @details
+#' The fitting process proceeds in reverse order of the stages (`K` down to `1`).
+#' For any stage `k < K`, the model is fit to a "pseudo-outcome" calculated from
+#' the predictions of the model at stage `k+1`. See the underlying recursive
+#' engine for more details.
+#'
+#' @return A `fitted_staged_workflow` object containing the ordered list of all
+#'   fitted stage models.
+#' @export
+fit.staged_workflow <- function(
+  object,
+  data,
+  ...,
+  discount = 1,
+  control = control_fit()
+) {
+  .check_staged_fit_inputs(object, data, discount)
+
+  fit_recursive(
+    object = object,
+    data = data,
+    discount = discount,
+    control = control,
+    single_stage = FALSE
+  )
+}
+
+#' @rdname fit.staged_workflow
+#' @export
+fit.fitted_staged_workflow <- function(
+  object,
+  data,
+  ...,
+  discount = 1,
+  control = control_fit()
+) {
+  .check_staged_fit_inputs(object, data, discount)
+
+  fit_recursive(
+    object = object,
+    data = data,
+    discount = discount,
+    control = control,
+    single_stage = FALSE
+  )
+}
+
+# --- Causal Workflows (AIPW/EIF) ---------------------------------------------
 
 #' Fit a causal workflow
 #'
@@ -29,28 +91,28 @@ generics::fit
 #'
 #' @return A `fitted_causal_workflow` object.
 #'
-#' @seealso [tune_nested()], [fit.staged_workflow()]
+#' @seealso [fit_nested()], [fit.staged_workflow()]
 #' @export
 fit.causal_workflow <- function(object, data, ..., control = control_fit()) {
   # 1. Validate inputs
   .check_fit_inputs(object, data)
 
   # 2. Extract workflows and variable names
+  spec_vars <- .extract_spec_vars(object)
+  treatment_var <- spec_vars$treatment_var
+  outcome_var <- spec_vars$outcome_var
   pscore_spec <- object$propensity_model
   outcome_spec <- object$outcome_model
-
-  treatment_formula <- hardhat::extract_preprocessor(pscore_spec)
-  treatment_var <- rlang::f_lhs(treatment_formula) |> rlang::as_name()
-
-  outcome_formula <- hardhat::extract_preprocessor(outcome_spec)
-  outcome_var <- rlang::f_lhs(outcome_formula) |> rlang::as_name()
 
   data[[treatment_var]] <- as.factor(data[[treatment_var]])
   treatment_levels <- levels(data[[treatment_var]])
 
   # 3. Fit models, with internal tuning if necessary
-  g_fit <- .fit_nuisance_spec(pscore_spec, resamples = NULL, training_data = data)
-  q_fit <- .fit_nuisance_spec(outcome_spec, resamples = NULL, training_data = data)
+  g_resamples <- if (.spec_needs_tuning(pscore_spec)) rsample::vfold_cv(data) else NULL
+  q_resamples <- if (.spec_needs_tuning(outcome_spec)) rsample::vfold_cv(data) else NULL
+
+  g_fit <- .fit_nuisance_spec(pscore_spec, resamples = g_resamples, training_data = data)
+  q_fit <- .fit_nuisance_spec(outcome_spec, resamples = q_resamples, training_data = data)
 
   # 4. Generate in-sample nuisance predictions
   nuisance_preds <- .get_nuisance_preds(
@@ -107,17 +169,6 @@ fit.causal_workflow <- function(object, data, ..., control = control_fit()) {
   return(fitted_obj)
 }
 
-.check_fit_inputs <- function(object, data, call = rlang::caller_env()) {
-  if (is.null(object$propensity_model)) {
-    cli::cli_abort("The causal workflow must have a propensity model.", call = call)
-  }
-  if (is.null(object$outcome_model)) {
-    cli::cli_abort("The causal workflow must have an outcome model.", call = call)
-  }
-  if (!is.data.frame(data)) {
-    cli::cli_abort("{.arg data} must be a data frame.", call = call)
-  }
-}
 
 # --- Internal Helpers for Nuisance Models and EIF ---
 .get_nuisance_preds <- function(g_fit, q_fit, data, treatment_var, treatment_levels) {
@@ -154,14 +205,4 @@ fit.causal_workflow <- function(object, data, ..., control = control_fit()) {
 
   names(eif_list) <- paste0("eif_pom_", treatment_levels)
   tibble::as_tibble(eif_list)
-}
-
-.spec_needs_tuning <- function(spec) {
-  if (inherits(spec, "workflow_set")) {
-    return(TRUE)
-  }
-  if (inherits(spec, "workflow") && nrow(tune::tunable(spec)) > 0) {
-    return(TRUE)
-  }
-  FALSE
 }

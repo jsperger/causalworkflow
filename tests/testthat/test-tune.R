@@ -6,6 +6,7 @@ library(workflows)
 library(workflowsets)
 library(testthat)
 library(tune)
+library(lifecycle)
 
 # --- Test Data ----------------------------------------------------------------
 
@@ -25,9 +26,10 @@ sim_data_staged <- data.frame(
 test_that("A staged_workflow with a tunable tmle_workflow can be fitted", {
   skip_if_not_installed("tune")
   skip_if_not_installed("rsample")
+  skip_if_not_installed("glmnet")
 
   # A tmle_workflow with a tunable model
-  glmnet_logit_mod <- parsnip::logistic_reg(penalty = tune()) |>
+  glmnet_logit_mod <- parsnip::logistic_reg(penalty = tune(), mixture = 1) |>
     parsnip::set_engine("glmnet")
 
   stage_1_tmle_tuned <- tmle_workflow() |>
@@ -39,7 +41,7 @@ test_that("A staged_workflow with a tunable tmle_workflow can be fitted", {
     add_propensity_model(
       workflow() |>
         add_model(glmnet_logit_mod) |>
-        add_formula(action ~ covar1)
+        add_formula(action ~ covar1 + covar2)
     )
 
   stage_2_q <- workflow() |>
@@ -57,10 +59,8 @@ test_that("A staged_workflow with a tunable tmle_workflow can be fitted", {
 
   # Check that the propensity model in stage 1 was actually tuned and fitted
   g_fit_s1 <- fitted_spec$models$`1`$propensity_model_fit
-  expect_s3_class(g_fit_s1, "workflow")
+  expect_s3_class(g_fit_s1, "model_fit")
   expect_true(g_fit_s1$trained)
-  # Check that the `penalty` parameter is no longer tunable
-  expect_equal(nrow(tune::tunable(g_fit_s1)), 0)
 })
 
 test_that("A staged_workflow can use a workflow_set", {

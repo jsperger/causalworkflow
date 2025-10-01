@@ -58,13 +58,18 @@ add_outcome_model.tmle_workflow <- function(x, spec) {
 
 #' @export
 fit.tmle_workflow <- function(object, data, ...) {
-  # 1. Fit initial nuisance models directly using the helper
-  g_fit <- .fit_nuisance_spec(object$propensity_model, NULL, data)
-  q_fit <- .fit_nuisance_spec(object$outcome_model, NULL, data)
+  # 1. Fit initial nuisance models, creating resamples if needed for tuning
+  g_spec <- object$propensity_model
+  q_spec <- object$outcome_model
+
+  g_resamples <- if (.spec_needs_tuning(g_spec)) rsample::vfold_cv(data) else NULL
+  q_resamples <- if (.spec_needs_tuning(q_spec)) rsample::vfold_cv(data) else NULL
+
+  g_fit <- .fit_nuisance_spec(g_spec, resamples = g_resamples, training_data = data)
+  q_fit <- .fit_nuisance_spec(q_spec, resamples = q_resamples, training_data = data)
 
   # 2. Extract components and generate initial predictions
-  treatment_var <- rlang::f_lhs(hardhat::extract_preprocessor(object$propensity_model)) |>
-    rlang::as_name()
+  treatment_var <- .extract_var_name(object$propensity_model)
   treatment_levels <- levels(data[[treatment_var]])
   outcome_var <- "outcome" # Standardized by recursive engine
 

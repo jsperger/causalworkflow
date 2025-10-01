@@ -29,7 +29,7 @@ outcome_wflow <-
 pscore_wflow_tune <-
   workflows::workflow() |>
   workflows::add_model(
-    parsnip::logistic_reg(penalty = tune::tune()) |> parsnip::set_engine("glmnet")
+    parsnip::logistic_reg(penalty = tune::tune(), mixture = 1) |> parsnip::set_engine("glmnet")
   ) |>
   workflows::add_formula(treatment ~ covar1 + covar2)
 
@@ -46,9 +46,9 @@ outcome_wf_set <-
     cross = FALSE
   )
 
-# Tests for tune_nested
+# Tests for fit_nested
 # ------------------------------------------------------------------------------
-test_that("tune_nested works with a single tunable workflow", {
+test_that("fit_nested works with a single tunable workflow", {
   skip_if_not_installed("tune")
   skip_if_not_installed("dials")
   skip_if_not_installed("glmnet")
@@ -62,11 +62,9 @@ test_that("tune_nested works with a single tunable workflow", {
   # Test nested tuning
   # Note: A grid is not supplied, relying on tune's default grid creation
   set.seed(4321)
-  tuned_wflow <- tune_nested(
+  tuned_wflow <- fit_nested(
     aipw_spec_tune,
     resamples = outer_resamples,
-    treatment_var = "treatment",
-    outcome_var = "outcome",
     inner_v = 2,
     metric = "roc_auc"
   )
@@ -77,7 +75,7 @@ test_that("tune_nested works with a single tunable workflow", {
   expect_equal(names(tuned_wflow$estimates), c("level", ".pred"))
 })
 
-test_that("tune_nested works with a workflow_set and stacks", {
+test_that("fit_nested works with a workflow_set and stacks", {
   skip_if_not_installed("workflowsets")
   skip_if_not_installed("stacks")
   skip_if_not_installed("ranger")
@@ -91,11 +89,9 @@ test_that("tune_nested works with a workflow_set and stacks", {
 
   # Test nested ensembling
   set.seed(4321)
-  stacked_wflow <- tune_nested(
+  stacked_wflow <- fit_nested(
     aipw_spec_stack,
     resamples = outer_resamples,
-    treatment_var = "treatment",
-    outcome_var = "outcome",
     inner_v = 2
   )
 
