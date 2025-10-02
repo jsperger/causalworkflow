@@ -7,7 +7,9 @@
 tmle_workflow(...)
 }
 \arguments{
-\item{...}{Additional arguments. Currently ignored.}
+\item{...}{<\code{\link[rlang:dyn-dots]{dynamic-dots}}> Named arguments where the
+name defines the \code{component_id} and the value is a \verb{<workflow>},
+\verb{<workflow_set>}, or \verb{<tailor>} object.}
 }
 \value{
 A \code{tmle_workflow} object, which also inherits from \code{causal_workflow}.
@@ -20,7 +22,7 @@ This object is a specialized type of \code{causal_workflow} that signals to the
 fitting engine that TMLE-specific steps (e.g., model targeting or
 fluctuation) are required.
 
-Like a \code{causal_workflow}, it serves as a container for the propensity and
-outcome models, which are added with \code{\link[=add_propensity_model]{add_propensity_model()}} and
-\code{\link[=add_outcome_model]{add_outcome_model()}}.
+Like a \code{causal_workflow}, it serves as a container for the various modeling
+components, which are added with \code{\link[=add_component]{add_component()}}. For TMLE, this typically
+includes a "propensity" and an "outcome" model.
 }

@@ -2,35 +2,23 @@
 % Please edit documentation in R/causal_workflows.R
 \name{causal_workflow}
 \alias{causal_workflow}
-\title{Initialize a Causal Workflow}
+\title{Create a Causal Workflow}
 \usage{
-causal_workflow(...)
+causal_workflow(..., .stage = 1L)
 }
 \arguments{
-\item{...}{Additional arguments. Currently ignored.}
+\item{...}{<\code{\link[rlang:dyn-dots]{dynamic-dots}}> Named arguments where the
+name defines the \code{component_id} and the value is a \verb{<workflow>},
+\verb{<workflow_set>}, or \verb{<tailor>} object.}
+
+\item{.stage}{A single integer defining the analysis stage for the
+provided components. Defaults to \code{1L}.}
 }
 \value{
 A \code{causal_workflow} object.
 }
 \description{
-The \code{causal_workflow()} function initializes a \code{causal_workflow} object.
-This object serves as a container for the various component models
-required for a causal analysis, such as a propensity score model and an
-outcome model.
-
-The resulting \code{causal_workflow} object is then passed to "verb" functions
-like \code{\link[=add_propensity_model]{add_propensity_model()}} and \code{\link[=add_outcome_model]{add_outcome_model()}} to specify the
-analysis.
-}
-\details{
-This initial version of \code{causal_workflow} is designed for single-stage,
-point-treatment estimators with binary treatments (e.g., AIPW). The
-underlying architecture is designed to be extensible to more complex
-scenarios in future versions, including:
-\itemize{
-\item Multi-level categorical or continuous treatments.
-\item More generic weighting schemes, such as inverse probability of censoring
-weights.
-\item Multi-stage dynamic treatment regimes.
-}
+Initializes a \code{causal_workflow} object. This function creates a tibble-based
+structure that serves as a blueprint for a causal analysis. Components are
+added to this object using \code{\link[=add_component]{add_component()}} or \code{\link[=add_stage]{add_stage()}}.
 }

@@ -1,82 +1,45 @@
-#' Initialize a Causal Workflow
+#' Create a Causal Workflow
 #'
 #' @description
-#' The `causal_workflow()` function initializes a `causal_workflow` object.
-#' This object serves as a container for the various component models
-#' required for a causal analysis, such as a propensity score model and an
-#' outcome model.
+#' Initializes a `causal_workflow` object. This function creates a tibble-based
+#' structure that serves as a blueprint for a causal analysis. Components are
+#' added to this object using [add_component()] or [add_stage()].
 #'
-#' The resulting `causal_workflow` object is then passed to "verb" functions
-#' like [add_propensity_model()] and [add_outcome_model()] to specify the
-#' analysis.
+#' @param ... <[`dynamic-dots`][rlang::dyn-dots]> Named arguments where the
+#'   name defines the `component_id` and the value is a `<workflow>`,
+#'   `<workflow_set>`, or `<tailor>` object.
+#' @param .stage A single integer defining the analysis stage for the
+#'   provided components. Defaults to `1L`.
 #'
-#' @details
-#' This initial version of `causal_workflow` is designed for single-stage,
-#' point-treatment estimators with binary treatments (e.g., AIPW). The
-#' underlying architecture is designed to be extensible to more complex
-#' scenarios in future versions, including:
-#' - Multi-level categorical or continuous treatments.
-#' - More generic weighting schemes, such as inverse probability of censoring
-#'   weights.
-#' - Multi-stage dynamic treatment regimes.
-#'
-#' @param ... Additional arguments. Currently ignored.
-#'
-#' @return A `causal_workflow` object.
+#' @returns A `causal_workflow` object.
 #' @export
-causal_workflow <- function(...) {
-  check_empty_ellipses(...)
+causal_workflow <- function(..., .stage = 1L) {
+  res <- new_causal_workflow()
+  components <- rlang::list2(...)
 
-  wflow <-
-    structure(
-      list(
-        propensity_model = NULL,
-        outcome_model = NULL
-      ),
-      class = "causal_workflow"
+  if (rlang::is_empty(components)) {
+    return(res)
+  }
+
+  for (nm in names(components)) {
+    res <- add_component(res, nm, components[[nm]], stage = .stage)
+  }
+
+  res
+}
+
+new_causal_workflow <- function(x = NULL) {
+  if (is.null(x)) {
+    x <- tibble::tibble(
+      stage = integer(0),
+      component_id = character(0),
+      component = list(),
+      options = list(),
+      result = list()
     )
-
-  if (causal_workflow_constr(wflow)) {
-    wflow
   }
-}
 
-#' Add a propensity model to a causal workflow
-#'
-#' @param x A `causal_workflow` object.
-#' @param spec A `tidymodels` `workflow` or `workflow_set` object for the
-#'   propensity model.
-#'
-#' @return An updated `causal_workflow` object.
-#' @export
-add_propensity_model <- function(x, spec) {
-  check_causal_workflow(x)
-  check_spec(spec)
-
-  x$propensity_model <- spec
-
-  if (causal_workflow_constr(x)) {
-    x
-  }
-}
-
-#' Add an outcome model to a causal workflow
-#'
-#' @param x A `causal_workflow` object.
-#' @param spec A `tidymodels` `workflow` or `workflow_set` object for the
-#'   outcome model.
-#'
-#' @return An updated `causal_workflow` object.
-#' @export
-add_outcome_model <- function(x, spec) {
-  check_causal_workflow(x)
-  check_spec(spec)
-
-  x$outcome_model <- spec
-
-  if (causal_workflow_constr(x)) {
-    x
-  }
+  tibble::new_tibble(x, class = "causal_workflow")
 }
 
 check_causal_workflow <- function(x, call = rlang::caller_env()) {
@@ -86,20 +49,6 @@ check_causal_workflow <- function(x, call = rlang::caller_env()) {
       call = call
     )
   }
-}
-
-#' @importFrom hardhat extract_preprocessor
-#' @export
-hardhat::extract_preprocessor
-
-#' @export
-extract_preprocessor.causal_workflow <- function(x, ...) {
-  # The relevant preprocessor for a causal_workflow in the context of staged
-  # fitting is the one from the outcome model, as it defines the response.
-  if (is.null(x$outcome_model)) {
-    cli::cli_abort("The causal workflow has no outcome model.")
-  }
-  hardhat::extract_preprocessor(x$outcome_model)
 }
 
 check_spec <- function(spec, call = rlang::caller_env()) {

@@ -8,59 +8,25 @@
 #' fitting engine that TMLE-specific steps (e.g., model targeting or
 #' fluctuation) are required.
 #'
-#' Like a `causal_workflow`, it serves as a container for the propensity and
-#' outcome models, which are added with [add_propensity_model()] and
-#' [add_outcome_model()].
+#' Like a `causal_workflow`, it serves as a container for the various modeling
+#' components, which are added with [add_component()]. For TMLE, this typically
+#' includes a "propensity" and an "outcome" model.
 #'
 #' @inheritParams causal_workflow
 #' @return A `tmle_workflow` object, which also inherits from `causal_workflow`.
 #' @export
 tmle_workflow <- function(...) {
-  check_empty_ellipses(...)
-
-  wflow <-
-    structure(
-      list(
-        propensity_model = NULL,
-        outcome_model = NULL
-      ),
-      class = c("tmle_workflow", "causal_workflow")
-    )
-
-  if (causal_workflow_constr(wflow)) {
-    wflow
-  }
+  res <- causal_workflow(...)
+  class(res) <- c("tmle_workflow", class(res))
+  res
 }
 
-#' @export
-add_propensity_model.tmle_workflow <- function(x, spec) {
-  check_causal_workflow(x)
-  check_spec(spec)
-
-  x$propensity_model <- spec
-
-  if (causal_workflow_constr(x)) {
-    x
-  }
-}
-
-#' @export
-add_outcome_model.tmle_workflow <- function(x, spec) {
-  check_causal_workflow(x)
-  check_spec(spec)
-
-  x$outcome_model <- spec
-
-  if (causal_workflow_constr(x)) {
-    x
-  }
-}
 
 #' @export
 fit.tmle_workflow <- function(object, data, ...) {
   # 1. Fit initial nuisance models, creating resamples if needed for tuning
-  g_spec <- object$propensity_model
-  q_spec <- object$outcome_model
+  g_spec <- object$component[object$component_id == "propensity"][[1]]
+  q_spec <- object$component[object$component_id == "outcome"][[1]]
 
   g_resamples <- if (.spec_needs_tuning(g_spec)) {
     rsample::vfold_cv(data)
@@ -85,7 +51,7 @@ fit.tmle_workflow <- function(object, data, ...) {
   )
 
   # 2. Extract components and generate initial predictions
-  treatment_var <- .extract_var_name(object$propensity_model)
+  treatment_var <- .extract_var_name(g_spec)
   treatment_levels <- levels(data[[treatment_var]])
   outcome_var <- "outcome" # Standardized by recursive engine
 
@@ -163,4 +129,52 @@ fit.tmle_workflow <- function(object, data, ...) {
     seq_len(nrow(data)),
     match(observed_actions, action_levels)
   )]
+}
+
+.spec_needs_tuning <- function(spec) {
+  if (inherits(spec, "workflow_set")) {
+    return(TRUE)
+  }
+  if (inherits(spec, "workflow")) {
+    return(hardhat::has_blueprint(spec$pre$actions$recipe) &&
+             !is.null(spec$pre$actions$recipe$recipe$steps) &&
+             any(vapply(spec$pre$actions$recipe$recipe$steps,
+                        function(x) inherits(x, "step_hyper"), logical(1))))
+  }
+  return(FALSE)
+}
+
+.fit_nuisance_spec <- function(spec, resamples, training_data) {
+  if (.spec_needs_tuning(spec)) {
+    tune::tune_grid(spec, resamples = resamples)
+  } else {
+    parsnip::fit(spec, data = training_data)
+  }
+}
+
+.extract_var_name <- function(spec) {
+  if (inherits(spec, "workflow_set")) {
+    # Assuming all workflows in the set have the same outcome
+    spec <- spec$info[[1]]$workflow[[1]]
+  }
+  # This is a bit brittle, but should work for most cases
+  spec$pre$actions$formula$formula[[2]] |> as.character()
+}
+
+.get_nuisance_preds <- function(g_fit, q_fit, data, treatment_var, treatment_levels) {
+  # This is a placeholder for a more robust prediction function
+  # that would handle workflow_sets, etc.
+  g_preds <- predict(g_fit, new_data = data, type = "prob")
+  names(g_preds) <- paste0("g_hat_", names(g_preds))
+
+  q_preds_list <- purrr::map(treatment_levels, function(lvl) {
+    new_data_lvl <- data
+    new_data_lvl[[treatment_var]] <- lvl
+    predict(q_fit, new_data = new_data_lvl)
+  })
+
+  q_preds <- dplyr::bind_cols(q_preds_list)
+  names(q_preds) <- paste0("q_hat_", treatment_levels)
+
+  dplyr::bind_cols(g_preds, q_preds)
 }
