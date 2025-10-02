@@ -4,31 +4,22 @@
 \alias{fit.causal_workflow}
 \title{Fit a causal workflow}
 \usage{
-\method{fit}{causal_workflow}(object, data, ..., control = control_fit())
+\method{fit}{causal_workflow}(object, data, engine = "aipw", ...)
 }
 \arguments{
-\item{object}{A \code{causal_workflow} object that has been configured with
-a propensity model and an outcome model.}
+\item{object}{A \code{causal_workflow} object.}
 
-\item{data}{A data frame containing the training data.}
+\item{data}{A data frame containing the data for the analysis.}
 
-\item{...}{Not used.}
+\item{engine}{A character string specifying the estimation engine.
+Currently, only \code{"aipw"} is supported.}
 
-\item{control}{A \code{control_fit} object. Currently unused but reserved for
-future enhancements.}
+\item{...}{Additional arguments passed to the engine.}
 }
 \value{
-A \code{fitted_causal_workflow} object.
+A fitted \code{causal_workflow} object with the \code{result} column
+populated.
 }
 \description{
-\code{fit} for a \code{causal_workflow} object performs a straightforward,
-non-cross-fitted estimation of causal effects.
-
-If the \code{propensity_model} or \code{outcome_model} contains tunable hyperparameters
-(e.g., from \code{tune()}) or is a \code{workflow_set}, this function will
-automatically perform internal cross-validation to tune the models or build
-an ensemble before fitting the final models on the full dataset.
-}
-\seealso{
-\code{\link[=fit_nested]{fit_nested()}}, \code{\link[=fit.staged_workflow]{fit.staged_workflow()}}
+Fit a causal workflow
 }

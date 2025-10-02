@@ -10,6 +10,19 @@
 
 Provides a framework for estimating causal effects using multi-stage, modular modeling procedures. The package introduces the 'causal_workflow' and 'staged_workflow' objects, which allow for flexible specification of nuisance models (e.g., for propensity scores and outcome models) and the final causal model. It leverages cross-fitting to mitigate the risks of over-fitting when constructing estimators like the Augmented Inverse Propensity Weighting (AIPW) estimator. This structure is designed to be extensible to other multi-stage estimators, such as those used in Q-learning.
 }
+\details{
+\code{causalworkflows} is an R package for estimating causal effects using
+multi-stage, modular modeling procedures that align with the \code{tidymodels}
+framework. The package provides a flexible structure for defining and
+fitting causal estimators that rely on nuisance models, such as the
+propensity score and outcome models.
+
+The core of the package is the \code{causal_workflow()} object, which allows you
+to specify separate \code{tidymodels} workflows for each component of your
+estimator. The package can then be used to construct robust estimates of
+causal effects, such as the Average Treatment Effect (ATE), using estimators
+like the Augmented Inverse Propensity Weighting (AIPW) estimator.
+}
 \seealso{
 Useful links:
 \itemize{
