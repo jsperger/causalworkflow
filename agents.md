@@ -31,6 +31,9 @@ When you have finished writing and testing your code, you MUST follow these step
 2.  Review and rewrite the documentation for any functions you have created or modified to ensure it is clear, complete, and follows the specified style.
 3.  Ensure there are no unnecessary comments in the code.
 
+## Additional references
+The markdown files in `inst/refs` have additional information about `rlang`, `testthat`, `cli` packages and `tidymodels` model package guidance.
+
 # Tools & Commands
 ## Installing R packages
 Install R packages through the terminal instead of R.

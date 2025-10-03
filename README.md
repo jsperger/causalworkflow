@@ -1,214 +1,297 @@
+## 1\. Causal Workflow Design Document
 
-<!-- badges: start -->
+This document outlines the architecture and design for a `causal_workflow` object, a new structure for the `tidymodels` ecosystem designed to streamline complex causal inference analyses. The goal is to provide a flexible, extensible, and user-friendly framework for methods like CV-TMLE and multi-stage dynamic treatment regimes, while adhering to the principles of the `tidymodels` ecosystem.
 
-[![DOI
-badge](https://joss.theoj.org/papers/10.21105/joss.04471/status.svg)](https://doi.org/10.21105/joss.04471)
-[![R build
-status](https://github.com/simonpcouch/stacks/workflows/R-CMD-check/badge.svg)](https://github.com/tidymodels/stacks/actions)
-[![CRAN
-status](https://www.r-pkg.org/badges/version/stacks)](https://CRAN.R-project.org/package=stacks)
-<!-- badges: end -->
+`causalworkflows` is an R package for estimating causal effects using multi-stage, modular modeling procedures that align with the `tidymodels` framework. The package provides a flexible structure for defining and fitting causal estimators that rely on nuisance models, such as the propensity score and outcome models.
 
-## stacks - tidy model stacking <a href='https://stacks.tidymodels.org'><img src='man/figures/logo.png' alt = 'A hexagonal logo. Dark blue text reads "stacks", cascading over a stack of pancakes on a light blue background.' align="right" height="280" /></a>
+The core of the package is the `causal_workflow()` object, which allows you to specify separate `tidymodels` workflows for each component of your estimator. The package then uses cross-fitting to construct robust estimates of causal effects, such as the Average Treatment Effect (ATE), using estimators like the Augmented Inverse Propensity Weighting (AIPW) estimator.
 
-stacks is an R package for model stacking that aligns with the
-tidymodels. Model stacking is an ensembling method that takes the
-outputs of many models and combines them to generate a new
-model—referred to as an *ensemble* in this package—that generates
-predictions informed by each of its *members*.
+### 2\. The `causal_workflow` Object
 
-The process goes something like this:
+The core of the package is the `causal_workflow` object, a specialized tibble that acts as a blueprint for a causal analysis. Each row in this tibble represents a distinct modeling component required for the analysis.
 
-1.  Define candidate ensemble members using functionality from
-    [rsample](https://rsample.tidymodels.org/),
-    [parsnip](https://parsnip.tidymodels.org/),
-    [workflows](https://workflows.tidymodels.org/),
-    [recipes](https://recipes.tidymodels.org/), and
-    [tune](https://tune.tidymodels.org/)
-2.  Initialize a `data_stack` object with `stacks()`  
-3.  Iteratively add candidate ensemble members to the `data_stack` with
-    `add_candidates()`  
-4.  Evaluate how to combine their predictions with
-    `blend_predictions()`  
-5.  Fit candidate ensemble members with non-zero stacking coefficients
-    with `fit_members()`  
-6.  Predict on new data with `predict()`
+#### 2.1. Structure
 
-You can install the package with the following code:
+A `causal_workflow` object will be a tibble with a custom subclass (`causal_workflow`) and the following columns:
 
-``` r
-install.packages("stacks")
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `stage` | `numeric` | An integer indicating the analysis stage. For a single time-point analysis, this will be `1`. Essential for dynamic treatment regimes. |
+| `component_id` | `character` | A user-defined, unique identifier for the component within a given `stage`. Examples: `"propensity"`, `"outcome_sl"`, `"targeting"`. |
+| `component` | `list` | A list-column containing the core `tidymodels` object for that component. This can be a `<workflow>`, `<workflow_set>`, `stacks`, or `<tailor>` object. |
+| `options` | `list` | A list-column holding component-specific control objects that manage fitting, prediction, and other options. |
+| `result` | `list` | A list-column that is initially empty and will be populated by `fit()` with fitted objects, predictions, and metrics. |
+
+#### 2.2. Example Structure (Single-Stage TMLE)
+
+```
+# A tibble: 3 × 5
+  stage component_id component        options        result
+  <int> <chr>        <list>           <list>         <list>
+1     1 propensity   <workflow>       <control_prop> <list>
+2     1 outcome      <workflow_set>   <control_out>  <list>
+3     1 targeting    <tailor>         <control_targ> <list>
 ```
 
-Install the development version with:
+-----
 
-``` r
-# install.packages("pak")
-pak::pak("tidymodels/stacks")
+### 3\. Constructor Functions
+
+Manually creating the `causal_workflow` tibble would be cumbersome. A set of user-friendly constructor and helper functions is essential.
+
+#### 3.1. `causal_workflow()`
+
+This is the main constructor. It initializes the object and is designed to be used with pipes.
+
+  * **Usage**: It takes named arguments, where the name becomes the `component_id` and the value is the `tidymodels` object (`workflow`, `workflow_set`, or `tailor`).
+  * An optional `.stage` argument sets the stage for all components being added. It defaults to `1`.
+
+<!-- end list -->
+
+```r
+#' Create a Causal Workflow
+#'
+#' @description
+#' Initializes a `causal_workflow` object. Subsequent components or stages
+#' should be added with helper functions like `add_stage()`.
+#'
+#' @param ... <[`dynamic-dots`][rlang::dyn-dots]> Named arguments where the
+#'   name defines the `component_id` and the value is a `<workflow>`,
+#'   `<workflow_set>`, or `<tailor>` object.
+#' @param .stage A single integer defining the analysis stage for the
+#'   provided components. Defaults to `1`.
+#'
+#' @returns A `causal_workflow` object.
+causal_workflow <- function(..., .stage = 1L) {
+  # Implementation to create the initial tibble
+}
 ```
 
-stacks is generalized with respect to:
+#### 3.2. `add_stage()`
 
-- Model type: Any model type implemented in
-  [parsnip](https://parsnip.tidymodels.org/) or extension packages is
-  fair game to add to a stacks model stack.
-  [Here](https://www.tidymodels.org/find/parsnip/)’s a table of many of
-  the implemented model types in the tidymodels core, with a link there
-  to an article about implementing your own model classes as well.
-- Cross-validation scheme: Any resampling algorithm implemented in
-  [rsample](https://rsample.tidymodels.org/) or extension packages is
-  fair game for resampling data for use in training a model stack.
-- Error metric: Any metric function implemented in
-  [yardstick](https://yardstick.tidymodels.org/) or extension packages
-  is fair game for evaluating model stacks and their members. That
-  package provides some infrastructure for creating your own metric
-  functions as well!
+This helper function allows for the construction of multi-stage analyses in a readable, sequential manner.
 
-stacks uses a regularized linear model to combine predictions from
-ensemble members, though this model type is only one of many possible
-learning algorithms that could be used to fit a stacked ensemble model.
-For implementations of additional ensemble learning algorithms, check
-out
-[h2o](https://docs.h2o.ai/h2o/latest-stable/h2o-r/docs/reference/h2o.stackedEnsemble.html)
-and [SuperLearner](https://CRAN.R-project.org/package=SuperLearner).
+  * **Usage**: It takes an existing `causal_workflow` object and adds a new set of components for a specified stage.
 
-Rather than diving right into the implementation, we’ll focus here on
-how the pieces fit together, conceptually, in building an ensemble with
-`stacks`. See the `basics` vignette for an example of the API in action!
+<!-- end list -->
 
-## a grammar
+```r
+#' Add a Stage to a Causal Workflow
+#'
+#' @description
+#' Appends a new set of components for a subsequent analysis stage to an
+#' existing `causal_workflow` object.
+#'
+#' @param x A `causal_workflow` object.
+#' @param ... <[`dynamic-dots`][rlang::dyn-dots]> Named arguments for the
+#'   new components.
+#' @param .stage A single integer for the new stage. The function will error
+#'   if the stage number already exists.
+#'
+#' @returns An updated `causal_workflow` object.
+add_stage <- function(x, ..., .stage) {
+  # Implementation to add rows to the tibble
+}
+```
 
-At the highest level, ensembles are formed from *model definitions*. In
-this package, model definitions are an instance of a minimal
-[workflow](https://workflows.tidymodels.org/), containing a *model
-specification* (as defined in the
-[parsnip](https://parsnip.tidymodels.org/) package) and, optionally, a
-*preprocessor* (as defined in the
-[recipes](https://recipes.tidymodels.org/) package). Model definitions
-specify the form of candidate ensemble members.
+#### 3.3. Example Construction
 
-<figure>
-<img src="man/figures/model_defs.png"
-alt="A diagram representing “model definitions,” which specify the form of candidate ensemble members. Three colored boxes represent three different model types; a K-nearest neighbors model (in salmon), a linear regression model (in yellow), and a support vector machine model (in green)." />
-<figcaption aria-hidden="true">A diagram representing “model
-definitions,” which specify the form of candidate ensemble members.
-Three colored boxes represent three different model types; a K-nearest
-neighbors model (in salmon), a linear regression model (in yellow), and
-a support vector machine model (in green).</figcaption>
-</figure>
+```r
+# Define component objects (workflows, etc.)
+propensity_wf <- ...
+outcome_wfs <- ...
+targeting_tailor <- ...
 
-To be used in the same ensemble, each of these model definitions must
-share the same *resample*. This
-[rsample](https://rsample.tidymodels.org/) `rset` object, when paired
-with the model definitions, can be used to generate the tuning/fitting
-results objects for the candidate *ensemble members* with tune.
+# Construct the causal_workflow
+causal_wf <-
+  causal_workflow(
+    propensity = propensity_wf,
+    outcome = outcome_wfs,
+    targeting = targeting_tailor,
+    .stage = 1
+  )
+```
 
-<figure>
-<img src="man/figures/candidates.png"
-alt="A diagram representing “candidate members” generated from each model definition. Four salmon-colored boxes labeled “KNN” represent K-nearest neighbors models trained on the resamples with differing hyperparameters. Similarly, the linear regression model generates one candidate member, and the support vector machine model generates six." />
-<figcaption aria-hidden="true">A diagram representing “candidate
-members” generated from each model definition. Four salmon-colored boxes
-labeled “KNN” represent K-nearest neighbors models trained on the
-resamples with differing hyperparameters. Similarly, the linear
-regression model generates one candidate member, and the support vector
-machine model generates six.</figcaption>
-</figure>
+-----
 
-Candidate members first come together in a `data_stack` object through
-the `add_candidates()` function. Principally, these objects are just
-[tibble](https://tibble.tidyverse.org/)s, where the first column gives
-the true outcome in the assessment set (the portion of the training set
-used for model validation), and the remaining columns give the
-predictions from each candidate ensemble member. (When the outcome is
-numeric, there’s only one column per candidate ensemble member.
-Classification requires as many columns per candidate as there are
-levels in the outcome variable.) They also bring along a few extra
-attributes to keep track of model definitions.
+### 4\. Evaluation and Orchestration
 
-<figure>
-<img src="man/figures/data_stack.png"
-alt="A diagram representing a “data stack,” a specific kind of data frame. Colored “columns” depict, in white, the true value of the outcome variable in the validation set, followed by four columns (in salmon) representing the predictions from the K-nearest neighbors model, one column (in tan) representing the linear regression model, and six (in green) representing the support vector machine model." />
-<figcaption aria-hidden="true">A diagram representing a “data stack,” a
-specific kind of data frame. Colored “columns” depict, in white, the
-true value of the outcome variable in the validation set, followed by
-four columns (in salmon) representing the predictions from the K-nearest
-neighbors model, one column (in tan) representing the linear regression
-model, and six (in green) representing the support vector machine
-model.</figcaption>
-</figure>
+The separation of definition from execution is a core design principle. The `fit()` generic will be the primary entry point for evaluation, dispatching to different computational engines based on the user's requested causal method.
 
-Then, the data stack can be evaluated using `blend_predictions()` to
-determine to how best to combine the outputs from each of the candidate
-members. In the stacking literature, this process is commonly called
-*metalearning*.
+#### 4.1. `fit.causal_workflow()`
 
-The outputs of each member are likely highly correlated. Thus, depending
-on the degree of regularization you choose, the coefficients for the
-inputs of (possibly) many of the members will zero out—their predictions
-will have no influence on the final output, and those terms will thus be
-thrown out.
+  * **Usage**: This function takes the `causal_workflow` object, data, and an optional resampling object. A key argument, `engine`, will specify which causal estimation method to use.
+  * **Resampling**: The function will expect an `rsample` object for any cross-validated estimation engine. For CV-TMLE, the user must provide a **nested resampling object** (e.g., from `rsample::nested_cv()`). The orchestration engine is responsible for correctly navigating the nested structure.
 
-<figure>
-<img src="man/figures/coefs.png"
-alt="A diagram representing “stacking coefficients,” the coefficients of the linear model combining each of the candidate member predictions to generate the ensemble’s ultimate prediction. Boxes for each of the candidate members are placed besides each other, filled in with color if the coefficient for the associated candidate member is nonzero." />
-<figcaption aria-hidden="true">A diagram representing “stacking
-coefficients,” the coefficients of the linear model combining each of
-the candidate member predictions to generate the ensemble’s ultimate
-prediction. Boxes for each of the candidate members are placed besides
-each other, filled in with color if the coefficient for the associated
-candidate member is nonzero.</figcaption>
-</figure>
+<!-- end list -->
 
-These stacking coefficients determine which candidate ensemble members
-will become ensemble members. Candidates with non-zero stacking
-coefficients are then fitted on the whole training set, altogether
-making up a `model_stack` object.
+```r
+#' Fit a Causal Workflow
+#'
+#' @param x A `causal_workflow` object.
+#' @param data A data frame.
+#' @param resamples An optional `rsample` object, required for
+#'   cross-validated engines.
+#' @param engine A character string specifying the estimation engine.
+#'   Defaults to "cvtmle".
+#' @param ... Additional arguments passed to the engine.
+#'
+#' @returns A `causal_workflow` object with the `result` column populated.
+fit.causal_workflow <- function(x, data, resamples = NULL, engine = "cvtmle", ...) {
+  # Dispatch to the correct engine function, e.g., .engine_cvtmle()
+}
+```
 
-<figure>
-<img src="man/figures/class_model_stack.png"
-alt="A diagram representing the “model stack” class, which collates the stacking coefficients and members (candidate members with nonzero stacking coefficients that are trained on the full training set). The representation of the stacking coefficients is as before, where the members (shown next to their associated stacking coefficients) are colored-in pentagons. Model stacks are a list subclass." />
-<figcaption aria-hidden="true">A diagram representing the “model stack”
-class, which collates the stacking coefficients and members (candidate
-members with nonzero stacking coefficients that are trained on the full
-training set). The representation of the stacking coefficients is as
-before, where the members (shown next to their associated stacking
-coefficients) are colored-in pentagons. Model stacks are a list
-subclass.</figcaption>
-</figure>
+#### 4.2. Orchestration Engines
 
-This model stack object, outputted from `fit_members()`, is ready to
-predict on new data! The trained ensemble members are often referred to
-as *base models* in the stacking literature.
+These are the internal functions that execute the complex fitting logic.
 
-The full visual outline for these steps can be found
-[here](https://github.com/tidymodels/stacks/blob/main/inst/figs/outline.png).
-The API for the package closely mirrors these ideas. See the `basics`
-vignette for an example of how this grammar is implemented!
+  * **`.engine_cvtmle(causal_wf, resamples, ...)`**:
 
-## contributing
+    1.  **Input Validation**: Checks that `resamples` is a nested CV object.
+    2.  **Outer Loop**: Iterates through the outer folds. The assessment set of each outer fold is reserved for the final parameter estimation.
+    3.  **Inner Loop**: Iterates through the inner folds to generate out-of-sample nuisance predictions.
+          * Fits `propensity` and `outcome` models on the inner analysis sets. If a component is a `<workflow_set>`, this step performs model tuning and selects the best model based on the options provided.
+          * Generates predictions on the inner assessment sets.
+    4.  **Targeting**: Uses the full set of out-of-sample predictions from the inner loop to fit the `targeting` model/tailor.
+    5.  **Estimation**: Applies the fitted targeting step to the outer assessment set to compute the fold-specific causal estimate.
+    6.  **Aggregation**: After the outer loop, aggregates the fold-specific estimates to produce the final CV-TMLE estimate and its variance.
 
-This project is released with a [Contributor Code of
-Conduct](https://github.com/tidymodels/stacks/blob/main/.github/CODE_OF_CONDUCT.md).
-By contributing to this project, you agree to abide by its terms.
+  * **`.engine_aipw(causal_wf, resamples, ...)`**:
 
-- For questions and discussions about tidymodels packages, modeling, and
-  machine learning, please [post on Posit
-  Community](https://forum.posit.co/new-topic?category_id=15&tags=tidymodels,question).
+      * A simpler engine for a non-targeted, cross-validated doubly robust estimate. It would perform the inner loop logic to get out-of-sample nuisance predictions and then directly compute the AIPW estimate on the outer assessment folds.
 
-- If you think you have encountered a bug, please [submit an
-  issue](https://github.com/tidymodels/stacks/issues).
+-----
 
-- Either way, learn how to create and share a
-  [reprex](https://reprex.tidyverse.org/articles/learn-reprex.html) (a
-  minimal, reproducible example), to clearly communicate about your
-  code.
+### 5\. Managing Options and Configuration
 
-- Check out further details on [contributing guidelines for tidymodels
-  packages](https://www.tidymodels.org/contribute/) and [how to get
-  help](https://www.tidymodels.org/help/).
+Granular control over each component is necessary. This will be managed via the `options` column, which will store custom `control` objects. This is analogous to the `control` arguments in `tune` and the `option` column in `workflowsets`.
 
-In the stacks package, some test objects take too long to build with
-every commit. If your contribution changes the structure of `data_stack`
-or `model_stacks` objects, please regenerate these test objects by
-running the scripts in `man-roxygen/example_models.Rmd`, including those
-with chunk options `eval = FALSE`.
+#### 5.1. Control Objects
+
+A series of constructor functions will create standardized option objects.
+
+  * **`control_propensity(truncate = 0.01, ...)`**: Returns a control object with options specific to propensity score models, such as truncation levels.
+  * **`control_outcome(control_tune = control_grid(), ...)`**: Returns a control object for outcome models. If the component is a `<workflow_set>`, this is where the user would provide the `tune` control object to manage the hyperparameter search.
+  * **`control_targeting(...)`**: Options for the targeting step.
+
+#### 5.2. Usage
+
+The user would add these control objects to the `component` objects before creating the `causal_workflow`. A helper function, `add_options()`, could facilitate this. The orchestration engines would then parse these options to guide the fitting process.
+
+```r
+# Example of setting options
+propensity_wf_opts <-
+  propensity_wf |>
+  add_options(control_propensity(truncate = 0.025))
+
+outcome_wfs_opts <-
+  outcome_wfs |>
+  add_options(control_outcome(control_tune = control_grid(save_pred = TRUE)))
+
+# The options are carried into the final object
+causal_wf <- causal_workflow(
+  propensity = propensity_wf_opts,
+  outcome = outcome_wfs_opts,
+  ...
+)
+```
+
+-----
+
+### 6\. Proposed Function Organization
+
+| Category | Functions | Purpose |
+| :--- | :--- | :--- |
+| **Core** | `causal_workflow()`, `add_stage()` | User-friendly constructors for the main object. |
+| **Evaluation** | `fit()`, `predict()` | High-level generics for fitting the analysis and getting predictions. |
+| **Results** | `collect_metrics()`, `collect_predictions()` | Functions to extract and tidy results, analogous to `tune`. |
+| **Options** | `add_options()`, `control_propensity()`, `control_outcome()` | Constructors for managing component-specific options. |
+| **Plotting** | `autoplot()` | A method for visualizing results, similar to `workflowsets`. |
+| **Internal** | `.engine_cvtmle()`, `.engine_aipw()` | Non-exported functions that contain the core fitting logic. |
+
+### 7 Known Constraints & Assumptions
+Reliance on tidymodels: This architecture is fundamentally dependent on the tidymodels ecosystem. Users must be familiar with parsnip, recipes, and workflows to specify their nuisance models.
+
+Focus on Orchestration: The package's core responsibility is the coordination of the causal procedures for AIPW, CV-TMLE, and similar while being extensible. It delegates the actual model fitting algorithms to parsnip engines. The performance and correctness of the underlying model fits are the responsibility of those external packages.
+
+## Example usage 
+```r
+# 1. LOAD LIBRARIES
+# -----------------
+library(tidymodels)
+library(causalworkflow) # Your new package
+library(rsample)
+
+# 2. PREPARE DATA & RESAMPLING
+# ----------------------------
+# Load data where 'A' is treatment, 'Y' is outcome, 'W' are confounders
+data <- read_csv("my_data.csv")
+
+# CV-TMLE requires nested cross-validation for unbiased estimation
+set.seed(123)
+nested_cv <- nested_cv(data, outside = vfold_cv(v = 5), inside = vfold_cv(v = 5))
+
+# 3. DEFINE MODELING COMPONENTS
+# -----------------------------
+# a. Propensity Model (predicts A ~ W)
+propensity_spec <- logistic_reg() |> set_engine("glm")
+propensity_wf <- workflow() |>
+  add_model(propensity_spec) |>
+  add_formula(A ~ W1 + W2)
+
+# b. Outcome Model (predicts Y ~ A + W)
+# Use a workflow_set to tune between two different models
+outcome_spec_glm <- linear_reg() |> set_engine("glm")
+outcome_spec_rf <- rand_forest() |> set_engine("ranger") |> set_mode("regression")
+
+outcome_wfs <- workflow_set(
+  preproc = list(formula = Y ~ A + W1 + W2),
+  models = list(glm = outcome_spec_glm, rf = outcome_spec_rf)
+)
+
+# c. Targeting Model (fluctuation step)
+# Use a pre-defined logistic tailor for the fluctuation
+targeting_comp <- tailor_logistic()
+
+# 4. CONSTRUCT THE CAUSAL WORKFLOW
+# --------------------------------
+causal_wf <- causal_workflow(
+  propensity = propensity_wf,
+  outcome = outcome_wfs,
+  targeting = targeting_comp
+)
+
+# Print the object to see the analysis plan
+# > # A causal workflow
+# > # A tibble: 3 × 5
+# >   stage component_id component        options result
+# >   <int> <chr>        <list>           <list>  <list>
+# > 1     1 propensity   <workflow>       <NULL>  <NULL>
+# > 2     1 outcome      <workflow_set>   <NULL>  <NULL>
+# > 3     1 targeting    <tailor>         <NULL>  <NULL>
+
+# 5. FIT THE CAUSAL WORKFLOW
+# --------------------------
+# The engine handles the complex nested CV orchestration
+fitted_causal_wf <- fit(
+  causal_wf,
+  data = data,
+  resamples = nested_cv,
+  engine = "cvtmle"
+)
+
+# 6. INSPECT THE RESULTS
+# ----------------------
+# The result column is now populated
+print(fitted_causal_wf)
+
+# Collect the final, cross-validated causal estimate (e.g., ATE)
+# The function knows to aggregate the fold-wise estimates
+collect_metrics(fitted_causal_wf)
+
+# > # A tibble: 1 × 5
+# >   .metric .estimator .estimate .std_err .p_value
+# >   <chr>   <chr>          <dbl>    <dbl>    <dbl>
+# > 1 ate     tmle           0.123   0.0456   0.0067
+```
